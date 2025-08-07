@@ -2,7 +2,7 @@
  * @Description: None
  * @Author: LILYGO_L
  * @Date: 2025-08-05 11:23:28
- * @LastEditTime: 2025-08-07 11:17:11
+ * @LastEditTime: 2025-08-07 15:11:06
  * @License: GPL 3.0
  */
 #pragma once
@@ -29,11 +29,11 @@ protected:
     uint16_t _address = -1;
 
     size_t bufferSize;
-    uint8_t *rxBuffer;
+    std::unique_ptr<uint8_t[]> rxBuffer;
     size_t rxIndex;
     size_t rxLength;
 
-    uint8_t *txBuffer;
+    std::unique_ptr<uint8_t[]> txBuffer;
     size_t txLength;
     uint16_t txAddress;
 
@@ -49,8 +49,6 @@ private:
     bool initPins(int sdaPin, int sclPin);
     bool allocateWireBuffer(void);
     void freeWireBuffer(void);
-
-    void log_e(std::string msg);
 
 public:
     std::shared_ptr<Cpp_Bus_Driver::Hardware_Iic_1> _bus = std::make_shared<Cpp_Bus_Driver::Hardware_Iic_1>(_sda, _scl, static_cast<i2c_port_t>(_num));
