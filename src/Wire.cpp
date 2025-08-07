@@ -25,6 +25,11 @@
 
 #include "Wire.h"
 
+void TwoWire::log_e(std::string msg)
+{
+    _bus->Tool::assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "TwoWire: %s\n", msg.c_str());
+}
+
 bool TwoWire::initPins(int sdaPin, int sclPin)
 {
     //     if (sdaPin < 0)
@@ -96,38 +101,12 @@ bool TwoWire::initPins(int sdaPin, int sclPin)
 
 bool TwoWire::setPins(int sdaPin, int sclPin)
 {
-    // #if !CONFIG_DISABLE_HAL_LOCKS
-    //     if (lock == NULL)
-    //     {
-    //         lock = xSemaphoreCreateMutex();
-    //         if (lock == NULL)
-    //         {
-    //             log_e("xSemaphoreCreateMutex failed");
-    //             return false;
-    //         }
-    //     }
-    //     // acquire lock
-    //     if (xSemaphoreTake(lock, portMAX_DELAY) != pdTRUE)
-    //     {
-    //         log_e("could not acquire lock");
-    //         return false;
-    //     }
-    // #endif
-    //     if (!i2cIsInit(num))
-    //     {
-    //         initPins(sdaPin, sclPin);
-    //     }
-    //     else
-    //     {
-    //         log_e("bus already initialized. change pins only when not.");
-    //     }
-    // #if !CONFIG_DISABLE_HAL_LOCKS
-    //     // release lock
-    //     xSemaphoreGive(lock);
-    // #endif
-    //     return !i2cIsInit(num);
+    _bus->_sda = sdaPin;
+    _bus->_scl = sclPin;
+    _sda = sdaPin;
+    _scl = sclPin;
 
-    return 0;
+    return true;
 }
 
 bool TwoWire::allocateWireBuffer(void)
@@ -289,57 +268,19 @@ bool TwoWire::begin(uint8_t addr, int sdaPin, int sclPin, uint32_t frequency)
 // Master Begin
 bool TwoWire::begin(int sdaPin, int sclPin, uint32_t frequency)
 {
-    //     bool started = false;
-    //     esp_err_t err = ESP_OK;
-    // #if !CONFIG_DISABLE_HAL_LOCKS
-    //     if (lock == NULL)
-    //     {
-    //         lock = xSemaphoreCreateMutex();
-    //         if (lock == NULL)
-    //         {
-    //             log_e("xSemaphoreCreateMutex failed");
-    //             return false;
-    //         }
-    //     }
-    //     // acquire lock
-    //     if (xSemaphoreTake(lock, portMAX_DELAY) != pdTRUE)
-    //     {
-    //         log_e("could not acquire lock");
-    //         return false;
-    //     }
-    // #endif
-    //     if (is_slave)
-    //     {
-    //         log_e("Bus already started in Slave Mode.");
-    //         goto end;
-    //     }
-    //     if (i2cIsInit(num))
-    //     {
-    //         log_w("Bus already started in Master Mode.");
-    //         started = true;
-    //         goto end;
-    //     }
-    //     if (!allocateWireBuffer())
-    //     {
-    //         // failed! Error Message already issued
-    //         goto end;
-    //     }
-    //     if (!initPins(sdaPin, sclPin))
-    //     {
-    //         goto end;
-    //     }
-    //     err = i2cInit(num, sda, scl, frequency);
-    //     started = (err == ESP_OK);
+    _bus->_sda = sdaPin;
+    _bus->_scl = sclPin;
 
-    // end:
-    //     if (!started)
-    //         freeWireBuffer();
-    // #if !CONFIG_DISABLE_HAL_LOCKS
-    //     // release lock
-    //     xSemaphoreGive(lock);
-    // #endif
-    //     return started;
-    return 0;
+    if (_bus->begin(frequency) == false)
+    {
+        log_e("begin fail");
+        return false;
+    }
+
+    _sda = sdaPin;
+    _scl = sclPin;
+
+    return true;
 }
 
 bool TwoWire::end()
@@ -446,28 +387,18 @@ uint16_t TwoWire::getTimeOut()
 
 void TwoWire::beginTransmission(uint16_t address)
 {
-    //     if (is_slave)
-    //     {
-    //         log_e("Bus is in Slave Mode");
-    //         return;
-    //     }
-    // #if !CONFIG_DISABLE_HAL_LOCKS
-    //     if (nonStop && nonStopTask == xTaskGetCurrentTaskHandle())
-    //     {
-    //         log_e("Unfinished Repeated Start transaction! Expected requestFrom, not beginTransmission! Clearing...");
-    //         // release lock
-    //         xSemaphoreGive(lock);
-    //     }
-    //     // acquire lock
-    //     if (lock == NULL || xSemaphoreTake(lock, portMAX_DELAY) != pdTRUE)
-    //     {
-    //         log_e("could not acquire lock");
-    //         return;
-    //     }
-    // #endif
-    //     nonStop = false;
-    //     txAddress = address;
-    //     txLength = 0;
+    if (_address == address)
+    {
+        return;
+    }
+
+    if (_bus->begin(_bus->_freq_hz, address) == false)
+    {
+        log_e("begin fail");
+        return;
+    }
+
+    _address = address;
 }
 
 uint8_t TwoWire::endTransmission(bool sendStop)
@@ -510,92 +441,52 @@ uint8_t TwoWire::endTransmission(bool sendStop)
     //     default:
     //         break;
     //     }
-    return 4;
+    return 0;
 }
 
 size_t TwoWire::requestFrom(uint16_t address, size_t size, bool sendStop)
 {
-    //     if (is_slave)
-    //     {
-    //         log_e("Bus is in Slave Mode");
-    //         return 0;
-    //     }
-    //     if (rxBuffer == NULL || txBuffer == NULL)
-    //     {
-    //         log_e("NULL buffer pointer");
-    //         return 0;
-    //     }
-    //     esp_err_t err = ESP_OK;
-    //     if (nonStop
-    // #if !CONFIG_DISABLE_HAL_LOCKS
-    //         && nonStopTask == xTaskGetCurrentTaskHandle()
-    // #endif
-    //     )
-    //     {
-    //         if (address != txAddress)
-    //         {
-    //             log_e("Unfinished Repeated Start transaction! Expected address do not match! %u != %u", address, txAddress);
-    //             return 0;
-    //         }
-    //         nonStop = false;
-    //         rxIndex = 0;
-    //         rxLength = 0;
-    //         err = i2cWriteReadNonStop(num, address, txBuffer, txLength, rxBuffer, size, _timeOutMillis, &rxLength);
-    //         if (err)
-    //         {
-    //             log_e("i2cWriteReadNonStop returned Error %d", err);
-    //         }
-    //     }
-    //     else
-    //     {
-    // #if !CONFIG_DISABLE_HAL_LOCKS
-    //         // acquire lock
-    //         if (lock == NULL || xSemaphoreTake(lock, portMAX_DELAY) != pdTRUE)
-    //         {
-    //             log_e("could not acquire lock");
-    //             return 0;
-    //         }
-    // #endif
-    //         rxIndex = 0;
-    //         rxLength = 0;
-    //         err = i2cRead(num, address, rxBuffer, size, _timeOutMillis, &rxLength);
-    //         if (err)
-    //         {
-    //             log_e("i2cRead returned Error %d", err);
-    //         }
-    //     }
-    // #if !CONFIG_DISABLE_HAL_LOCKS
-    //     // release lock
-    //     xSemaphoreGive(lock);
-    // #endif
-    //     return rxLength;
-    return 0;
+    if (is_slave)
+    {
+        log_e("Bus is in Slave Mode");
+        return 0;
+    }
+    if (rxBuffer == NULL || txBuffer == NULL)
+    {
+        log_e("NULL buffer pointer");
+        return 0;
+    }
+
+    rxIndex = 0;
+    rxLength = 0;
+    if (_bus->read(rxBuffer, size) == false)
+    {
+        log_e("read fail");
+        return 0;
+    }
+
+    rxLength = size;
+
+    return rxLength;
 }
 
 size_t TwoWire::write(uint8_t data)
 {
-    // if (txBuffer == NULL)
-    // {
-    //     log_e("NULL TX buffer pointer");
-    //     return 0;
-    // }
-    // if (txLength >= bufferSize)
-    // {
-    //     return 0;
-    // }
-    // txBuffer[txLength++] = data;
+    if (_bus->write(&data, 1) == false)
+    {
+        log_e("write fail");
+        return 0;
+    }
     return 1;
 }
 
 size_t TwoWire::write(const uint8_t *data, size_t quantity)
 {
-    // for (size_t i = 0; i < quantity; ++i)
-    // {
-    //     if (!write(data[i]))
-    //     {
-    //         return i;
-    //     }
-    // }
+    if (_bus->write(data, quantity) == false)
+    {
+        log_e("write fail");
+        return 0;
+    }
     return quantity;
 }
 
@@ -607,18 +498,17 @@ int TwoWire::available(void)
 
 int TwoWire::read(void)
 {
-    // int value = -1;
-    // if (rxBuffer == NULL)
-    // {
-    //     log_e("NULL RX buffer pointer");
-    //     return value;
-    // }
-    // if (rxIndex < rxLength)
-    // {
-    //     value = rxBuffer[rxIndex++];
-    // }
-    // return value;
-    return -1;
+    int value = -1;
+    if (rxBuffer == NULL)
+    {
+        log_e("NULL RX buffer pointer");
+        return value;
+    }
+    if (rxIndex < rxLength)
+    {
+        value = rxBuffer[rxIndex++];
+    }
+    return value;
 }
 
 int TwoWire::peek(void)

@@ -2,7 +2,7 @@
  * @Description: None
  * @Author: LILYGO_L
  * @Date: 2025-08-05 11:23:28
- * @LastEditTime: 2025-08-05 12:07:29
+ * @LastEditTime: 2025-08-07 11:17:11
  * @License: GPL 3.0
  */
 #pragma once
@@ -23,9 +23,10 @@ typedef void (*user_onReceive)(uint8_t *, int);
 class TwoWire
 {
 protected:
-    uint8_t num;
-    int8_t sda;
-    int8_t scl;
+    uint8_t _num;
+    int32_t _sda;
+    int32_t _scl;
+    uint16_t _address = -1;
 
     size_t bufferSize;
     uint8_t *rxBuffer;
@@ -49,26 +50,29 @@ private:
     bool allocateWireBuffer(void);
     void freeWireBuffer(void);
 
+    void log_e(std::string msg);
+
 public:
+    std::shared_ptr<Cpp_Bus_Driver::Hardware_Iic_1> _bus = std::make_shared<Cpp_Bus_Driver::Hardware_Iic_1>(_sda, _scl, static_cast<i2c_port_t>(_num));
+
     TwoWire(uint8_t bus_num)
-        : num(bus_num & 1), sda(-1), scl(-1), bufferSize(I2C_BUFFER_LENGTH), rxBuffer(NULL), rxIndex(0), rxLength(0), txBuffer(NULL), txLength(0),
-          txAddress(0), _timeOutMillis(50), nonStop(false), is_slave(false), user_onRequest(NULL), user_onReceive(NULL)
+        : _num(bus_num)
     {
     }
 
     // call setPins() first, so that begin() can be called without arguments from libraries
     bool setPins(int sda, int scl);
 
-    bool begin(int sda, int scl, uint32_t frequency = 0); // returns true, if successful init of i2c bus
+    bool begin(int sda, int scl, uint32_t frequency = -1); // returns true, if successful init of i2c bus
     bool begin(uint8_t slaveAddr, int sda, int scl, uint32_t frequency);
     // Explicit Overload for Arduino MainStream API compatibility
     inline bool begin()
     {
-        return begin(-1, -1, static_cast<uint32_t>(0));
+        return begin(-1, -1, -1);
     }
     inline bool begin(uint8_t addr)
     {
-        return begin(addr, -1, -1, 0);
+        return begin(addr, -1, -1, -1);
     }
     inline bool begin(int addr)
     {

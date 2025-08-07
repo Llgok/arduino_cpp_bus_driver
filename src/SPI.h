@@ -2,7 +2,7 @@
  * @Description: None
  * @Author: LILYGO_L
  * @Date: 2025-08-05 11:23:01
- * @LastEditTime: 2025-08-05 11:54:35
+ * @LastEditTime: 2025-08-05 15:00:09
  * @License: GPL 3.0
  */
 #pragma once
@@ -14,6 +14,7 @@
 class SPISettings
 {
 public:
+    SPISettings() : _clock(1000000), _bitOrder(SPI_MSBFIRST), _dataMode(SPI_MODE0) {}
     SPISettings(uint32_t clock, uint8_t bitOrder, uint8_t dataMode)
         : _clock(clock), _bitOrder(bitOrder), _dataMode(dataMode)
     {
@@ -41,7 +42,7 @@ private:
     void writePattern_(const uint8_t *data, uint8_t size, uint8_t repeat);
 
 public:
-    SPIClass(uint8_t spi_bus= 0)
+    SPIClass(uint8_t spi_bus = 0)
         : _spi_num(spi_bus), _use_hw_ss(false), _sck(-1), _miso(-1), _mosi(-1), _ss(-1), _div(0), _freq(1000000), _inTransaction(false)
     {
     }
