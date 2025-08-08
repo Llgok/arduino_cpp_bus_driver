@@ -375,7 +375,7 @@ void TwoWire::beginTransmission(uint16_t address)
 
     if (_bus->begin(_bus->_freq_hz, address) == false)
     {
-        _bus->Tool::assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "begin fail\n");
+        _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "begin fail\n");
         return;
     }
 }
@@ -388,13 +388,13 @@ uint8_t TwoWire::endTransmission(bool sendStop)
     {
         if (buffer == 0)
         {
-            _bus->Tool::assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "_tx_buffer size = 0 fail\n");
+            _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "endTransmission fail (_tx_buffer size == 0)\n");
             return -1;
         }
 
         if (_bus->write(_tx_buffer.data(), buffer) == false)
         {
-            _bus->Tool::assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "write fail\n");
+            _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "write fail\n");
             return -1;
         }
         _tx_buffer.clear();
@@ -410,7 +410,7 @@ size_t TwoWire::requestFrom(uint16_t address, size_t size, bool sendStop)
 {
     // if (is_slave)
     // {
-    //     _bus->Tool::assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "bus is in slave mode\n");
+    //     _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "bus is in slave mode\n");
     //     return 0;
     // }
 
@@ -418,7 +418,7 @@ size_t TwoWire::requestFrom(uint16_t address, size_t size, bool sendStop)
 
     if (buffer == 0)
     {
-        _bus->Tool::assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "_tx_buffer size = 0 fail\n");
+        _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "requestFrom fail (_tx_buffer size == 0)\n");
         return 0;
     }
 
@@ -426,7 +426,7 @@ size_t TwoWire::requestFrom(uint16_t address, size_t size, bool sendStop)
     _rx_buffer = std::make_unique<uint8_t[]>(size);
     if (_bus->write_read(_tx_buffer.data(), buffer, _rx_buffer.get(), size) == false)
     {
-        _bus->Tool::assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "write_read fail\n");
+        _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "write_read fail\n");
         return 0;
     }
 
@@ -459,7 +459,7 @@ int TwoWire::read(void)
     int value = -1;
     if (_rx_buffer.get() == NULL)
     {
-        _bus->Tool::assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "null rx buffer pointer\n");
+        _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "null rx buffer pointer\n");
         return value;
     }
     if (_rx_index < _rx_length)
