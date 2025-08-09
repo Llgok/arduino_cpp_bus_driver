@@ -261,6 +261,8 @@ bool TwoWire::begin(int sdaPin, int sclPin, uint32_t frequency)
     _bus->_scl = sclPin;
     _bus->_freq_hz = frequency;
 
+    init_flag = false;
+
     return true;
 }
 
@@ -368,7 +370,7 @@ bool TwoWire::begin(int sdaPin, int sclPin, uint32_t frequency)
 
 void TwoWire::beginTransmission(uint16_t address)
 {
-    if (_bus->_address == address)
+    if (init_flag == true)
     {
         return;
     }
@@ -378,17 +380,19 @@ void TwoWire::beginTransmission(uint16_t address)
         _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "begin fail\n");
         return;
     }
+
+    init_flag = true;
 }
 
 uint8_t TwoWire::endTransmission(bool sendStop)
 {
-    uint8_t buffer = _tx_buffer.size();
+    size_t buffer = _tx_buffer.size();
 
     if (sendStop == true)
     {
         if (buffer == 0)
         {
-            _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "endTransmission fail (_tx_buffer size == 0)\n");
+            _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "endTransmission fail (_tx_buffer length == 0)\n");
             return -1;
         }
 
@@ -397,6 +401,11 @@ uint8_t TwoWire::endTransmission(bool sendStop)
             _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "write fail\n");
             return -1;
         }
+
+        // for (size_t i = 0; i < buffer; i++)
+        // {
+        //     _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::DEBUG, __FILE__, __LINE__, "tx1[%d]: %#X\n", i, _tx_buffer[i]);
+        // }
         _tx_buffer.clear();
     }
     else
@@ -414,11 +423,11 @@ size_t TwoWire::requestFrom(uint16_t address, size_t size, bool sendStop)
     //     return 0;
     // }
 
-    uint8_t buffer = _tx_buffer.size();
+    size_t buffer = _tx_buffer.size();
 
     if (buffer == 0)
     {
-        _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "requestFrom fail (_tx_buffer size == 0)\n");
+        _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "requestFrom fail (_tx_buffer length == 0)\n");
         return 0;
     }
 
@@ -429,6 +438,16 @@ size_t TwoWire::requestFrom(uint16_t address, size_t size, bool sendStop)
         _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "write_read fail\n");
         return 0;
     }
+
+    // for (size_t i = 0; i < buffer; i++)
+    // {
+    //     _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::DEBUG, __FILE__, __LINE__, "tx2[%d]: %#X\n", i, _tx_buffer[i]);
+    // }
+
+    // for (size_t i = 0; i < size; i++)
+    // {
+    //     _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::DEBUG, __FILE__, __LINE__, "rx[%d]: %#X\n", i, _rx_buffer[i]);
+    // }
 
     _tx_buffer.clear();
     _rx_length = size;

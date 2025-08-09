@@ -2,7 +2,7 @@
  * @Description: None
  * @Author: LILYGO_L
  * @Date: 2025-08-05 11:23:28
- * @LastEditTime: 2025-08-07 17:45:26
+ * @LastEditTime: 2025-08-08 14:12:35
  * @License: GPL 3.0
  */
 #pragma once
@@ -23,6 +23,7 @@
 class TwoWire
 {
 protected:
+    bool init_flag = false;
     uint8_t _num;
 
     // size_t bufferSize;
