@@ -2,7 +2,7 @@
  * @Description: None
  * @Author: LILYGO_L
  * @Date: 2025-08-05 11:23:01
- * @LastEditTime: 2025-08-09 10:28:19
+ * @LastEditTime: 2025-08-09 14:32:18
  * @License: GPL 3.0
  */
 #include "SPI.h"
@@ -127,12 +127,7 @@ void SPIClass::endTransaction()
         return;
     }
 
-    if (buffer_rx_buffer_length < 0)
-    {
-        _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::INFO, __FILE__, __LINE__, "endTransaction fail (tx length == %d rx length == %d)\n", buffer_tx_buffer_length, _rx_length);
-        return;
-    }
-    else if (buffer_rx_buffer_length == 0)
+    if (buffer_rx_buffer_length == 0)
     {
         if (_bus->write(_tx_buffer.data(), buffer_tx_buffer_length) == false)
         {
