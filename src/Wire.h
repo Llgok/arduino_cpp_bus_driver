@@ -1,8 +1,8 @@
 /*
- * @Description: None
+ * @Description: Wire
  * @Author: LILYGO_L
  * @Date: 2025-08-05 11:23:28
- * @LastEditTime: 2025-08-08 14:12:35
+ * @LastEditTime: 2025-08-09 13:57:17
  * @License: GPL 3.0
  */
 #pragma once

@@ -1,5 +1,5 @@
 /*
- * @Description: None
+ * @Description: SPI
  * @Author: LILYGO_L
  * @Date: 2025-08-05 11:23:01
  * @LastEditTime: 2025-08-09 10:28:54
