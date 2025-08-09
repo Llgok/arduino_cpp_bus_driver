@@ -387,13 +387,16 @@ size_t Print::printFloat(double number, uint8_t digits)
 
 size_t Serial_Default::write(uint8_t data)
 {
-    printf("%c", data);
+    write(&data, 1);
     return 1;
 }
 
 size_t Serial_Default::write(const uint8_t *buffer, size_t size)
 {
-    printf("%.*s", size, (const char *)buffer);
+    for (size_t i = 0; i < size; i++)
+    {
+        putchar(buffer[i]);
+    }
     return size;
 }
 
