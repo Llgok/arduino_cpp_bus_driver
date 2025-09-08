@@ -2,7 +2,7 @@
  * @Description: None
  * @Author: LILYGO_L
  * @Date: 2025-08-05 11:44:23
- * @LastEditTime: 2025-08-09 16:00:31
+ * @LastEditTime: 2025-09-08 18:14:46
  * @License: GPL 3.0
  */
 #include "arduino_cpp_bus_driver_library.h"
@@ -12,11 +12,11 @@ struct Interrupt_Arg
     std::function<void(void)> interrupt_function;
 };
 
-std::unordered_map<uint8_t, std::unique_ptr<Interrupt_Arg>> Interrupt_Map;
+static std::unordered_map<uint8_t, std::unique_ptr<Interrupt_Arg>> Interrupt_Map;
 
 auto Arduino_Cpp_Bus_Driver_Tool = std::make_unique<Cpp_Bus_Driver::Tool>();
 
-void IRAM_ATTR Interrupt_Callback_Template(void *arg)
+static void IRAM_ATTR Interrupt_Callback_Template(void *arg)
 {
     auto *local_arg = static_cast<Interrupt_Arg *>(arg);
     if (local_arg->interrupt_function)
@@ -147,7 +147,7 @@ void attachInterrupt(uint8_t pin, std::function<void(void)> intRoutine, int mode
     }
 
     auto arg = std::make_unique<Interrupt_Arg>(intRoutine);
-    Interrupt_Map[pin] = std::move(arg); 
+    Interrupt_Map[pin] = std::move(arg);
 
     if (Arduino_Cpp_Bus_Driver_Tool->create_gpio_interrupt(pin, buffer_mode, Interrupt_Callback_Template, Interrupt_Map[pin].get()) == false)
     {
