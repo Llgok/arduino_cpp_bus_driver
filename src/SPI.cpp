@@ -2,7 +2,7 @@
  * @Description: None
  * @Author: LILYGO_L
  * @Date: 2025-08-05 11:23:01
- * @LastEditTime: 2025-08-09 14:32:18
+ * @LastEditTime: 2025-09-08 16:56:52
  * @License: GPL 3.0
  */
 #include "SPI.h"
@@ -334,4 +334,4 @@ void SPIClass::transferBytes(const uint8_t *data, uint8_t *out, uint32_t size)
 //     // writeBytes(&buffer[0], bytes);
 // }
 
-SPIClass SPI(1);
+SPIClass SPI(SPI2_HOST);
