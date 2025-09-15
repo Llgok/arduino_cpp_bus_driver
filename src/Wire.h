@@ -2,7 +2,7 @@
  * @Description: Wire
  * @Author: LILYGO_L
  * @Date: 2025-08-05 11:23:28
- * @LastEditTime: 2025-08-09 13:57:17
+ * @LastEditTime: 2025-09-15 14:29:27
  * @License: GPL 3.0
  */
 #pragma once
@@ -62,7 +62,7 @@ public:
     // Explicit Overload for Arduino MainStream API compatibility
     inline bool begin()
     {
-        return begin(-1, -1, -1);
+        return begin(_bus->_sda, _bus->_scl, -1);
     }
     // inline bool begin(uint8_t addr)
     // {
@@ -103,6 +103,7 @@ public:
     size_t write(const uint8_t *, size_t);
     int available(void);
     int read(void);
+    size_t readBytes(uint8_t *buffer, size_t length);
     // int peek(void);
     void flush(void);
 

@@ -412,7 +412,7 @@ uint8_t TwoWire::endTransmission(bool sendStop)
     {
     }
 
-    return buffer;
+    return 0;
 }
 
 size_t TwoWire::requestFrom(uint16_t address, size_t size, bool sendStop)
@@ -486,6 +486,55 @@ int TwoWire::read(void)
         value = _rx_buffer[_rx_index++];
     }
     return value;
+}
+
+size_t TwoWire::readBytes(uint8_t *buffer, size_t length)
+{
+    if (buffer == nullptr)
+    {
+        _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "null output buffer pointer\n");
+        return 0;
+    }
+
+    if (_rx_buffer.get() == nullptr)
+    {
+        _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "null rx buffer pointer\n");
+        return 0;
+    }
+
+    if (length == 0)
+    {
+        _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "length == 0\n");
+        return 0;
+    }
+
+    if (_rx_index >= _rx_length)
+    {
+        _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "_rx_index >= _rx_length\n");
+        return 0;
+    }
+
+    size_t buffer_2 = 0;
+
+    // 计算实际可读取的字节数
+    if (length <= (_rx_length - _rx_index))
+    {
+        buffer_2 = length;
+    }
+    else
+    {
+        buffer_2 = _rx_length - _rx_index;
+        _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "length > (_rx_length - _rx_index)\n");
+    }
+
+    for (size_t i = 0; i < buffer_2; ++i)
+    {
+        buffer[i] = _rx_buffer[_rx_index + i];
+    }
+
+    _rx_index += buffer_2;
+
+    return buffer_2;
 }
 
 // int TwoWire::peek(void)

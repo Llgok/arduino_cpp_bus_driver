@@ -2,7 +2,7 @@
  * @Description: None
  * @Author: LILYGO_L
  * @Date: 2025-08-05 11:23:01
- * @LastEditTime: 2025-09-08 16:56:52
+ * @LastEditTime: 2025-09-15 14:13:18
  * @License: GPL 3.0
  */
 #include "SPI.h"
@@ -233,20 +233,13 @@ uint8_t SPIClass::transfer(uint8_t data)
 //     // spiTransferBits(_spi, data, out, bits);
 // }
 
-// /**
-//  * @param data uint8_t *
-//  * @param size uint32_t
-//  */
-// void SPIClass::writeBytes(const uint8_t *data, uint32_t size)
-// {
-//     // if (_inTransaction)
-//     // {
-//     //     return spiWriteNL(_spi, data, size);
-//     // }
-//     // spiSimpleTransaction(_spi);
-//     // spiWriteNL(_spi, data, size);
-//     // spiEndTransaction(_spi);
-// }
+void SPIClass::writeBytes(const uint8_t *data, uint32_t size)
+{
+    if (_bus->write(data, size) == false)
+    {
+        _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "write fail\n");
+    }
+}
 
 void SPIClass::transfer(void *data, uint32_t size)
 {
