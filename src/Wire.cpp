@@ -102,6 +102,11 @@ bool TwoWire::setPins(int sdaPin, int sclPin)
     return true;
 }
 
+void TwoWire::set_freq(uint32_t freq_hz)
+{
+    _bus->_freq_hz = freq_hz;
+}
+
 // bool TwoWire::allocateWireBuffer(void)
 // {
 //     // // or both buffer can be allocated or none will be

@@ -2,7 +2,7 @@
  * @Description: Wire
  * @Author: LILYGO_L
  * @Date: 2025-08-05 11:23:28
- * @LastEditTime: 2025-09-15 14:29:27
+ * @LastEditTime: 2025-09-17 17:27:39
  * @License: GPL 3.0
  */
 #pragma once
@@ -57,12 +57,14 @@ public:
     // call setPins() first, so that begin() can be called without arguments from libraries
     bool setPins(int sda, int scl);
 
+    void set_freq(uint32_t freq_hz);
+
     bool begin(int sda, int scl, uint32_t frequency = -1); // returns true, if successful init of i2c bus
     // bool begin(uint8_t slaveAddr, int sda, int scl, uint32_t frequency);
     // Explicit Overload for Arduino MainStream API compatibility
     inline bool begin()
     {
-        return begin(_bus->_sda, _bus->_scl, -1);
+        return begin(_bus->_sda, _bus->_scl, _bus->_freq_hz);
     }
     // inline bool begin(uint8_t addr)
     // {
