@@ -2,20 +2,18 @@
  * @Description: None
  * @Author: LILYGO_L
  * @Date: 2025-08-05 11:23:01
- * @LastEditTime: 2025-09-15 14:13:18
+ * @LastEditTime: 2026-04-20 16:53:02
  * @License: GPL 3.0
  */
 #include "SPI.h"
 
-void SPIClass::begin(int8_t sck, int8_t miso, int8_t mosi, int8_t ss)
-{
-    _bus->_port = static_cast<spi_host_device_t>(_spi_num);
-    _bus->_sclk = sck;
-    _bus->_miso = miso;
-    _bus->_mosi = mosi;
-    _bus->_cs = ss;
+void SPIClass::begin(int8_t sck, int8_t miso, int8_t mosi, int8_t ss) {
+  sclk_ = static_cast<int32_t>(sck);
+  miso_ = static_cast<int32_t>(miso);
+  mosi_ = static_cast<int32_t>(mosi);
+  cs_ = static_cast<int32_t>(ss);
 
-    init_flag = false;
+  init_flag_ = false;
 }
 
 // void SPIClass::end()
@@ -47,10 +45,7 @@ void SPIClass::begin(int8_t sck, int8_t miso, int8_t mosi, int8_t ss)
 //     // _use_hw_ss = use;
 // }
 
-void SPIClass::setFrequency(uint32_t freq)
-{
-    _bus->_freq_hz = freq;
-}
+void SPIClass::setFrequency(uint32_t freq) { freq_hz_ = freq; }
 
 // void SPIClass::setClockDivider(uint32_t clockDiv)
 // {
@@ -66,109 +61,110 @@ void SPIClass::setFrequency(uint32_t freq)
 //     return 0;
 // }
 
-// void SPIClass::setDataMode(uint8_t dataMode)
+// void SPIClass::setDataMode(uint8_t data_mode)
 // {
-//     // spiSetDataMode(_spi, dataMode);
+//     // spiSetDataMode(_spi, data_mode);
 // }
 
-// void SPIClass::setBitOrder(uint8_t bitOrder)
+// void SPIClass::setBitOrder(uint8_t bit_order)
 // {
-//     // spiSetBitOrder(_spi, bitOrder);
+//     // spiSetBitOrder(_spi, bit_order);
 // }
 
-void SPIClass::beginTransaction(SPISettings settings)
-{
-    // SPI_PARAM_LOCK();
-    // // check if last freq changed
-    // uint32_t cdiv = spiGetClockDiv(_spi);
-    // if (_freq != settings._clock || _div != cdiv)
-    // {
-    //     _freq = settings._clock;
-    //     _div = spiFrequencyToClockDiv(_freq);
-    // }
-    // spiTransaction(_spi, _div, settings._dataMode, settings._bitOrder);
-    // _inTransaction = true;
+void SPIClass::beginTransaction(SPISettings settings) {
+  // SPI_PARAM_LOCK();
+  // // check if last freq changed
+  // uint32_t cdiv = spiGetClockDiv(_spi);
+  // if (_freq != settings.clock_ || _div != cdiv)
+  // {
+  //     _freq = settings.clock_;
+  //     _div = spiFrequencyToClockDiv(_freq);
+  // }
+  // spiTransaction(_spi, _div, settings.data_mode_, settings.bit_order_);
+  // _inTransaction = true;
 
-    if (init_flag == true)
-    {
-        return;
-    }
+  if (init_flag_ == true) {
+    return;
+  }
 
-    _bus->_mode = settings._dataMode;
+  bus_ = std::make_shared<cpp_bus_driver::HardwareSpi>(mosi_, sclk_, miso_,
+      static_cast<spi_host_device_t>(spi_num_), settings.data_mode_,
+      [this](uint8_t bit_order) -> uint32_t {
+        switch (bit_order) {
+          case SPI_LSBFIRST:
+            return SPI_DEVICE_BIT_LSBFIRST;
+          default:
+            bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kInfo, __FILE__,
+                __LINE__, "Value out of range\n");
+            return -1;
+        }
+      }(settings.bit_order_));
 
-    switch (settings._bitOrder)
-    {
-    case SPI_LSBFIRST:
-        _bus->_flags = SPI_DEVICE_BIT_LSBFIRST;
-        break;
-    case SPI_MSBFIRST:
-        break;
+  bus_->set_bus_init_flag(bus_init_flag_);
 
-    default:
-        break;
-    }
+  if (!bus_->Init(settings.clock_, cs_)) {
+    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kBus, __FILE__, __LINE__,
+        "Init failed\n");
+  }
 
-    if (_bus->begin(settings._clock, _bus->_cs) == false)
-    {
-        _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "begin fail\n");
-    }
-
-    init_flag = true;
+  init_flag_ = true;
 }
 
-void SPIClass::endTransaction()
-{
-    size_t buffer_tx_buffer_length = _tx_buffer.size();
-    size_t buffer_rx_buffer_length = buffer_tx_buffer_length - _rx_length;
+void SPIClass::endTransaction() {
+  size_t buffertx_buffer__length = tx_buffer_.size();
+  size_t bufferrx_buffer__length = buffertx_buffer__length - rx_length_;
 
-    if (buffer_tx_buffer_length == 0)
-    {
-        _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::INFO, __FILE__, __LINE__, "endTransaction fail (_tx_buffer length == 0)\n");
-        return;
+  if (buffertx_buffer__length == 0) {
+    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kInfo, __FILE__, __LINE__,
+        "Value out of range\n");
+    return;
+  }
+
+  if (bufferrx_buffer__length == 0) {
+    if (!bus_->Write(tx_buffer_.data(), buffertx_buffer__length)) {
+      bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kBus, __FILE__, __LINE__,
+          "Write failed\n");
     }
 
-    if (buffer_rx_buffer_length == 0)
-    {
-        if (_bus->write(_tx_buffer.data(), buffer_tx_buffer_length) == false)
-        {
-            _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "write fail\n");
-        }
+    // for (size_t i = 0; i < buffertx_buffer__length; i++)
+    // {
+    //     bus_->LogMessage(cpp_bus_driver::Tool::Log_Level::DEBUG, __FILE__,
+    //     __LINE__, "tx1[%d]: %#X\n", i, tx_buffer_[i]);
+    // }
+  } else {
+    auto buffer_rx_data = std::make_unique<uint8_t[]>(buffertx_buffer__length);
 
-        // for (size_t i = 0; i < buffer_tx_buffer_length; i++)
-        // {
-        //     _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::DEBUG, __FILE__, __LINE__, "tx1[%d]: %#X\n", i, _tx_buffer[i]);
-        // }
-    }
-    else
-    {
-        auto buffer_rx_data = std::make_unique<uint8_t[]>(buffer_tx_buffer_length);
-
-        if (_bus->write_read(_tx_buffer.data(), buffer_rx_data.get(), buffer_tx_buffer_length) == false)
-        {
-            _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "write_read fail\n");
-        }
-
-        // for (size_t i = 0; i < buffer_tx_buffer_length; i++)
-        // {
-        //     _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::DEBUG, __FILE__, __LINE__, "tx2[%d]: %#X\n", i, _tx_buffer[i]);
-        // }
-
-        // for (size_t i = 0; i < buffer_tx_buffer_length; i++)
-        // {
-        //     _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::DEBUG, __FILE__, __LINE__, "rx[%d]: %#X\n", i, buffer_rx_data[i]);
-        // }
-
-        std::memcpy(_rx_buffer, buffer_rx_data.get() + buffer_rx_buffer_length, _rx_length);
-
-        // for (size_t i = 0; i < _rx_length; i++)
-        // {
-        //     _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::DEBUG, __FILE__, __LINE__, "_rx_buffer[%d]: %#X\n", i, _rx_buffer[i]);
-        // }
+    if (!bus_->WriteRead(
+            tx_buffer_.data(), buffer_rx_data.get(), buffertx_buffer__length)) {
+      bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kBus, __FILE__, __LINE__,
+          "WriteRead failed\n");
     }
 
-    _tx_buffer.clear();
-    _rx_buffer = nullptr;
-    _rx_length = 0;
+    // for (size_t i = 0; i < buffertx_buffer__length; i++)
+    // {
+    //     bus_->LogMessage(cpp_bus_driver::Tool::Log_Level::DEBUG, __FILE__,
+    //     __LINE__, "tx2[%d]: %#X\n", i, tx_buffer_[i]);
+    // }
+
+    // for (size_t i = 0; i < buffertx_buffer__length; i++)
+    // {
+    //     bus_->LogMessage(cpp_bus_driver::Tool::Log_Level::DEBUG, __FILE__,
+    //     __LINE__, "rx[%d]: %#X\n", i, buffer_rx_data[i]);
+    // }
+
+    std::memcpy(
+        rx_buffer_, buffer_rx_data.get() + bufferrx_buffer__length, rx_length_);
+
+    // for (size_t i = 0; i < rx_length_; i++)
+    // {
+    //     bus_->LogMessage(cpp_bus_driver::Tool::Log_Level::DEBUG, __FILE__,
+    //     __LINE__, "rx_buffer_[%d]: %#X\n", i, rx_buffer_[i]);
+    // }
+  }
+
+  tx_buffer_.clear();
+  rx_buffer_ = nullptr;
+  rx_length_ = 0;
 }
 
 // void SPIClass::write(uint8_t data)
@@ -180,10 +176,9 @@ void SPIClass::endTransaction()
 //     // spiWriteByte(_spi, data);
 // }
 
-uint8_t SPIClass::transfer(uint8_t data)
-{
-    transfer(&data, 1);
-    return 1;
+uint8_t SPIClass::transfer(uint8_t data) {
+  transfer(&data, 1);
+  return 1;
 }
 
 // void SPIClass::write16(uint16_t data)
@@ -233,17 +228,15 @@ uint8_t SPIClass::transfer(uint8_t data)
 //     // spiTransferBits(_spi, data, out, bits);
 // }
 
-void SPIClass::writeBytes(const uint8_t *data, uint32_t size)
-{
-    if (_bus->write(data, size) == false)
-    {
-        _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "write fail\n");
-    }
+void SPIClass::writeBytes(const uint8_t* data, uint32_t size) {
+  if (!bus_->Write(data, size)) {
+    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kBus, __FILE__, __LINE__,
+        "Write failed\n");
+  }
 }
 
-void SPIClass::transfer(void *data, uint32_t size)
-{
-    transferBytes((const uint8_t *)data, (uint8_t *)data, size);
+void SPIClass::transfer(void* data, uint32_t size) {
+  transferBytes((const uint8_t*)data, (uint8_t*)data, size);
 }
 
 // /**
@@ -266,12 +259,11 @@ void SPIClass::transfer(void *data, uint32_t size)
  * @param out  uint8_t * output buffer. can be NULL for Write Only operation
  * @param size uint32_t
  */
-void SPIClass::transferBytes(const uint8_t *data, uint8_t *out, uint32_t size)
-{
-    _tx_buffer.insert(_tx_buffer.end(), data, data + size);
+void SPIClass::transferBytes(const uint8_t* data, uint8_t* out, uint32_t size) {
+  tx_buffer_.insert(tx_buffer_.end(), data, data + size);
 
-    _rx_buffer = out;
-    _rx_length = size;
+  rx_buffer_ = out;
+  rx_length_ = size;
 }
 
 // /**
@@ -279,7 +271,8 @@ void SPIClass::transferBytes(const uint8_t *data, uint8_t *out, uint32_t size)
 //  * @param size uint8_t  max for size is 64Byte
 //  * @param repeat uint32_t
 //  */
-// void SPIClass::writePattern(const uint8_t *data, uint8_t size, uint32_t repeat)
+// void SPIClass::writePattern(const uint8_t *data, uint8_t size, uint32_t
+// repeat)
 // {
 //     // if (size > 64)
 //     // {
@@ -288,7 +281,8 @@ void SPIClass::transferBytes(const uint8_t *data, uint8_t *out, uint32_t size)
 
 //     // uint32_t byte = (size * repeat);
 //     // uint8_t r = (64 / size);
-//     // const uint8_t max_bytes_FIFO = r * size; // Max number of whole patterns (in bytes) that can fit into the hardware FIFO
+//     // const uint8_t max_bytes_FIFO = r * size; // Max number of whole
+//     patterns (in bytes) that can fit into the hardware FIFO
 
 //     // while (byte)
 //     // {
@@ -305,7 +299,8 @@ void SPIClass::transferBytes(const uint8_t *data, uint8_t *out, uint32_t size)
 //     // }
 // }
 
-// void SPIClass::writePattern_(const uint8_t *data, uint8_t size, uint8_t repeat)
+// void SPIClass::writePattern_(const uint8_t *data, uint8_t size, uint8_t
+// repeat)
 // {
 //     // uint8_t bytes = (size * repeat);
 //     // uint8_t buffer[64];

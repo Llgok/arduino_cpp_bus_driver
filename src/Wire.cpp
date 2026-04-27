@@ -18,9 +18,9 @@
 
   Modified 2012 by Todd Krein (todd@krein.org) to implement repeated starts
   Modified December 2014 by Ivan Grokhotkov (ivan@esp8266.com) - esp8266 support
-  Modified April 2015 by Hrsto Gochkov (ficeto@ficeto.com) - alternative esp8266 support
-  Modified Nov 2017 by Chuck Todd (ctodd@cableone.net) - ESP32 ISR Support
-  Modified Nov 2021 by Hristo Gochkov <Me-No-Dev> to support ESP-IDF API
+  Modified April 2015 by Hrsto Gochkov (ficeto@ficeto.com) - alternative esp8266
+  support Modified Nov 2017 by Chuck Todd (ctodd@cableone.net) - ESP32 ISR
+  Support Modified Nov 2021 by Hristo Gochkov <Me-No-Dev> to support ESP-IDF API
  */
 
 #include "Wire.h"
@@ -94,53 +94,57 @@
 //     return true;
 // }
 
-bool TwoWire::setPins(int sdaPin, int sclPin)
-{
-    _bus->_sda = sdaPin;
-    _bus->_scl = sclPin;
+bool TwoWire::setPins(int sdaPin, int sclPin) {
+  sda_ = sdaPin;
+  scl_ = sclPin;
 
-    return true;
+  return true;
 }
 
-void TwoWire::set_freq(uint32_t freq_hz)
-{
-    _bus->_freq_hz = freq_hz;
+void TwoWire::set_freq(uint32_t freq_hz) { freq_hz_ = freq_hz; }
+
+bool TwoWire::set_bus_handle(i2c_master_bus_handle_t bus_handle) {
+  if (bus_handle == nullptr) {
+    return false;
+  }
+
+  bus_handle_ = bus_handle;
+
+  return true;
 }
 
 // bool TwoWire::allocateWireBuffer(void)
 // {
 //     // // or both buffer can be allocated or none will be
-//     // if (_rx_buffer == NULL)
+//     // if (rx_buffer_ == NULL)
 //     // {
-//     //     _rx_buffer = (uint8_t *)malloc(bufferSize);
-//     //     if (_rx_buffer == NULL)
+//     //     rx_buffer_ = (uint8_t *)malloc(bufferSize);
+//     //     if (rx_buffer_ == NULL)
 //     //     {
-//     //         log_e("Can't allocate memory for I2C_%d _rx_buffer", num);
+//     //         log_e("Can't allocate memory for I2C_%d rx_buffer_", num);
 //     //         return false;
 //     //     }
 //     // }
-//     // if (_tx_buffer == NULL)
+//     // if (tx_buffer_ == NULL)
 //     // {
-//     //     _tx_buffer = (uint8_t *)malloc(bufferSize);
-//     //     if (_tx_buffer == NULL)
+//     //     tx_buffer_ = (uint8_t *)malloc(bufferSize);
+//     //     if (tx_buffer_ == NULL)
 //     //     {
-//     //         log_e("Can't allocate memory for I2C_%d _tx_buffer", num);
-//     //         freeWireBuffer(); // free _rx_buffer for safety!
+//     //         log_e("Can't allocate memory for I2C_%d tx_buffer_", num);
+//     //         freeWireBuffer(); // free rx_buffer_ for safety!
 //     //         return false;
 //     //     }
 //     // }
-//     // // in case both were allocated before, they must have the same size. All good.
-//     return true;
+//     // // in case both were allocated before, they must have the same size.
+//     All good. return true;
 // }
 
-void TwoWire::freeWireBuffer(void)
-{
-    if (_rx_buffer.get() != NULL)
-    {
-        _rx_buffer.reset();
-    }
+void TwoWire::freeWireBuffer(void) {
+  if (rx_buffer_.get() != NULL) {
+    rx_buffer_.reset();
+  }
 
-    _tx_buffer.clear();
+  tx_buffer_.clear();
 }
 
 // size_t TwoWire::setBufferSize(size_t bSize)
@@ -169,13 +173,16 @@ void TwoWire::freeWireBuffer(void)
 //     //         return 0;
 //     //     }
 //     // #endif
-//     //     // allocateWireBuffer allocates memory for both pointers or just free them
-//     //     if (_rx_buffer != NULL || _tx_buffer != NULL)
+//     //     // allocateWireBuffer allocates memory for both pointers or just
+//     free them
+//     //     if (rx_buffer_ != NULL || tx_buffer_ != NULL)
 //     //     {
-//     //         // if begin() has been already executed, memory size changes... data may be lost. We don't care! :^)
+//     //         // if begin() has been already executed, memory size
+//     changes... data may be lost. We don't care! :^)
 //     //         if (bSize != bufferSize)
 //     //         {
-//     //             // we want a new buffer size ... just reset buffer pointers and allocate new ones
+//     //             // we want a new buffer size ... just reset buffer
+//     pointers and allocate new ones
 //     //             freeWireBuffer();
 //     //             bufferSize = bSize;
 //     //             if (!allocateWireBuffer())
@@ -188,7 +195,8 @@ void TwoWire::freeWireBuffer(void)
 //     //     }
 //     //     else
 //     //     {
-//     //         // no memory allocated yet, just change the size value - allocation in begin()
+//     //         // no memory allocated yet, just change the size value -
+//     allocation in begin()
 //     //         bufferSize = bSize;
 //     //     }
 //     // #if !CONFIG_DISABLE_HAL_LOCKS
@@ -240,8 +248,10 @@ void TwoWire::freeWireBuffer(void)
 //     //     {
 //     //         goto end;
 //     //     }
-//     //     i2cSlaveAttachCallbacks(num, onRequestService, onReceiveService, this);
-//     //     if (i2cSlaveInit(num, sda, scl, addr, frequency, bufferSize, bufferSize) != ESP_OK)
+//     //     i2cSlaveAttachCallbacks(num, onRequestService, onReceiveService,
+//     this);
+//     //     if (i2cSlaveInit(num, sda, scl, addr, frequency, bufferSize,
+//     bufferSize) != ESP_OK)
 //     //     {
 //     //         log_e("Slave Init ERROR");
 //     //         goto end;
@@ -260,15 +270,21 @@ void TwoWire::freeWireBuffer(void)
 // }
 
 // Master Begin
-bool TwoWire::begin(int sdaPin, int sclPin, uint32_t frequency)
-{
-    _bus->_sda = sdaPin;
-    _bus->_scl = sclPin;
-    _bus->_freq_hz = frequency;
+bool TwoWire::begin(int sdaPin, int sclPin, uint32_t frequency) {
+  sda_ = sdaPin;
+  scl_ = sclPin;
+  freq_hz_ = frequency;
 
-    init_flag = false;
+  bus_ = std::make_shared<cpp_bus_driver::HardwareI2c1>(
+      sda_, scl_, static_cast<i2c_port_t>(num_));
 
-    return true;
+  if (bus_handle_ != nullptr) {
+    bus_->set_bus_handle(bus_handle_);
+  }
+
+  init_flag_ = false;
+
+  return true;
 }
 
 // bool TwoWire::end()
@@ -373,251 +389,201 @@ bool TwoWire::begin(int sdaPin, int sclPin, uint32_t frequency)
 //     return _timeOutMillis;
 // }
 
-void TwoWire::beginTransmission(uint16_t address)
-{
-    if (init_flag == true)
-    {
-        return;
-    }
+void TwoWire::beginTransmission(uint16_t address) {
+  if (init_flag_ == true) {
+    return;
+  }
 
-    if (_bus->begin(_bus->_freq_hz, address) == false)
-    {
-        _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "begin fail\n");
-        return;
-    }
+  if (!bus_->Init(freq_hz_, address)) {
+    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kBus, __FILE__, __LINE__,
+        "Init failed\n");
+    return;
+  }
 
-    init_flag = true;
+  init_flag_ = true;
 }
 
-uint8_t TwoWire::endTransmission(bool sendStop)
-{
-    size_t buffer = _tx_buffer.size();
+uint8_t TwoWire::endTransmission(bool sendStop) {
+  size_t buffer = tx_buffer_.size();
 
-    if (sendStop == true)
-    {
-        if (buffer == 0)
-        {
-            _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "endTransmission fail (_tx_buffer length == 0)\n");
-            return -1;
-        }
-
-        if (_bus->write(_tx_buffer.data(), buffer) == false)
-        {
-            _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "write fail\n");
-            return -1;
-        }
-
-        // for (size_t i = 0; i < buffer; i++)
-        // {
-        //     _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::DEBUG, __FILE__, __LINE__, "tx1[%d]: %#X\n", i, _tx_buffer[i]);
-        // }
-        _tx_buffer.clear();
-    }
-    else
-    {
+  if (sendStop == true) {
+    if (buffer == 0) {
+      bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kInfo, __FILE__,
+          __LINE__, "Value out of range\n");
+      return -1;
     }
 
+    if (!bus_->Write(tx_buffer_.data(), buffer)) {
+      bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kBus, __FILE__, __LINE__,
+          "Write failed\n");
+      return -1;
+    }
+
+    tx_buffer_.clear();
+  } else {
+  }
+
+  return 0;
+}
+
+size_t TwoWire::requestFrom(uint16_t address, size_t size, bool sendStop) {
+  size_t buffer = tx_buffer_.size();
+
+  if (buffer == 0) {
+    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kInfo, __FILE__, __LINE__,
+        "Value out of range\n");
     return 0;
+  }
+
+  rx_index_ = 0;
+  rx_buffer_ = std::make_unique<uint8_t[]>(size);
+  if (!bus_->WriteRead(tx_buffer_.data(), buffer, rx_buffer_.get(), size)) {
+    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kBus, __FILE__, __LINE__,
+        "WriteRead failed\n");
+    return 0;
+  }
+
+  tx_buffer_.clear();
+  rx_length_ = size;
+
+  return rx_length_;
 }
 
-size_t TwoWire::requestFrom(uint16_t address, size_t size, bool sendStop)
-{
-    // if (is_slave)
-    // {
-    //     _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "bus is in slave mode\n");
-    //     return 0;
-    // }
-
-    size_t buffer = _tx_buffer.size();
-
-    if (buffer == 0)
-    {
-        _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "requestFrom fail (_tx_buffer length == 0)\n");
-        return 0;
-    }
-
-    _rx_index = 0;
-    _rx_buffer = std::make_unique<uint8_t[]>(size);
-    if (_bus->write_read(_tx_buffer.data(), buffer, _rx_buffer.get(), size) == false)
-    {
-        _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "write_read fail\n");
-        return 0;
-    }
-
-    // for (size_t i = 0; i < buffer; i++)
-    // {
-    //     _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::DEBUG, __FILE__, __LINE__, "tx2[%d]: %#X\n", i, _tx_buffer[i]);
-    // }
-
-    // for (size_t i = 0; i < size; i++)
-    // {
-    //     _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::DEBUG, __FILE__, __LINE__, "rx[%d]: %#X\n", i, _rx_buffer[i]);
-    // }
-
-    _tx_buffer.clear();
-    _rx_length = size;
-
-    return _rx_length;
+size_t TwoWire::write(uint8_t data) {
+  write(&data, 1);
+  return 1;
 }
 
-size_t TwoWire::write(uint8_t data)
-{
-    write(&data, 1);
-    return 1;
+size_t TwoWire::write(const uint8_t* data, size_t quantity) {
+  tx_buffer_.insert(tx_buffer_.end(), data, data + quantity);
+  return quantity;
 }
 
-size_t TwoWire::write(const uint8_t *data, size_t quantity)
-{
-    _tx_buffer.insert(_tx_buffer.end(), data, data + quantity);
-    return quantity;
+int TwoWire::available(void) {
+  int result = rx_length_ - rx_index_;
+  return result;
 }
 
-int TwoWire::available(void)
-{
-    int result = _rx_length - _rx_index;
-    return result;
-}
-
-int TwoWire::read(void)
-{
-    int value = -1;
-    if (_rx_buffer.get() == NULL)
-    {
-        _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "null rx buffer pointer\n");
-        return value;
-    }
-    if (_rx_index < _rx_length)
-    {
-        value = _rx_buffer[_rx_index++];
-    }
+int TwoWire::read(void) {
+  int value = -1;
+  if (rx_buffer_.get() == nullptr) {
+    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kInfo, __FILE__, __LINE__,
+        "Invalid argument\n");
     return value;
+  }
+  if (rx_index_ < rx_length_) {
+    value = rx_buffer_[rx_index_++];
+  }
+  return value;
 }
 
-size_t TwoWire::readBytes(uint8_t *buffer, size_t length)
-{
-    if (buffer == nullptr)
-    {
-        _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "null output buffer pointer\n");
-        return 0;
-    }
+size_t TwoWire::readBytes(uint8_t* buffer, size_t length) {
+  if (buffer == nullptr) {
+    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kInfo, __FILE__, __LINE__,
+        "Invalid argument\n");
+    return 0;
+  }
 
-    if (_rx_buffer.get() == nullptr)
-    {
-        _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "null rx buffer pointer\n");
-        return 0;
-    }
+  if (length == 0) {
+    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kInfo, __FILE__, __LINE__,
+        "Value out of range\n");
+    return 0;
+  }
 
-    if (length == 0)
-    {
-        _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "length == 0\n");
-        return 0;
-    }
+  if (rx_index_ >= rx_length_) {
+    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kInfo, __FILE__, __LINE__,
+        "Value out of range\n");
+    return 0;
+  }
 
-    if (_rx_index >= _rx_length)
-    {
-        _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "_rx_index >= _rx_length\n");
-        return 0;
-    }
+  size_t buffer_2 = 0;
 
-    size_t buffer_2 = 0;
+  // 计算实际可读取的字节数
+  if (length <= (rx_length_ - rx_index_)) {
+    buffer_2 = length;
+  } else {
+    buffer_2 = rx_length_ - rx_index_;
+    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kInfo, __FILE__, __LINE__,
+        "Value out of range\n");
+  }
 
-    // 计算实际可读取的字节数
-    if (length <= (_rx_length - _rx_index))
-    {
-        buffer_2 = length;
-    }
-    else
-    {
-        buffer_2 = _rx_length - _rx_index;
-        _bus->assert_log(Cpp_Bus_Driver::Tool::Log_Level::BUS, __FILE__, __LINE__, "length > (_rx_length - _rx_index)\n");
-    }
+  for (size_t i = 0; i < buffer_2; ++i) {
+    buffer[i] = rx_buffer_[rx_index_ + i];
+  }
 
-    for (size_t i = 0; i < buffer_2; ++i)
-    {
-        buffer[i] = _rx_buffer[_rx_index + i];
-    }
+  rx_index_ += buffer_2;
 
-    _rx_index += buffer_2;
-
-    return buffer_2;
+  return buffer_2;
 }
 
 // int TwoWire::peek(void)
 // {
 //     // int value = -1;
-//     // if (_rx_buffer == NULL)
+//     // if (rx_buffer_ == NULL)
 //     // {
 //     //     log_e("NULL RX buffer pointer");
 //     //     return value;
 //     // }
-//     // if (_rx_index < _rx_length)
+//     // if (rx_index_ < rx_length_)
 //     // {
-//     //     value = _rx_buffer[_rx_index];
+//     //     value = rx_buffer_[rx_index_];
 //     // }
 //     // return value;
 //     return -1;
 // }
 
-void TwoWire::flush(void)
-{
-    _rx_index = 0;
-    _rx_length = 0;
+void TwoWire::flush(void) {
+  rx_index_ = 0;
+  rx_length_ = 0;
 }
 
-size_t TwoWire::requestFrom(uint8_t address, size_t len, bool sendStop)
-{
-    return requestFrom(static_cast<uint16_t>(address), static_cast<size_t>(len), static_cast<bool>(sendStop));
+size_t TwoWire::requestFrom(uint8_t address, size_t len, bool sendStop) {
+  return requestFrom(static_cast<uint16_t>(address), static_cast<size_t>(len),
+      static_cast<bool>(sendStop));
 }
 
-uint8_t TwoWire::requestFrom(uint8_t address, uint8_t len, uint8_t sendStop)
-{
-    return requestFrom(static_cast<uint16_t>(address), static_cast<size_t>(len), static_cast<bool>(sendStop));
+uint8_t TwoWire::requestFrom(uint8_t address, uint8_t len, uint8_t sendStop) {
+  return requestFrom(static_cast<uint16_t>(address), static_cast<size_t>(len),
+      static_cast<bool>(sendStop));
 }
 
-uint8_t TwoWire::requestFrom(uint16_t address, uint8_t len, uint8_t sendStop)
-{
-    return requestFrom(address, static_cast<size_t>(len), static_cast<bool>(sendStop));
+uint8_t TwoWire::requestFrom(uint16_t address, uint8_t len, uint8_t sendStop) {
+  return requestFrom(
+      address, static_cast<size_t>(len), static_cast<bool>(sendStop));
 }
 
-uint8_t TwoWire::requestFrom(uint16_t address, uint8_t len, bool stopBit)
-{
-    return requestFrom((uint16_t)address, (size_t)len, stopBit);
+uint8_t TwoWire::requestFrom(uint16_t address, uint8_t len, bool stopBit) {
+  return requestFrom((uint16_t)address, (size_t)len, stopBit);
 }
 
-uint8_t TwoWire::requestFrom(uint8_t address, uint8_t len)
-{
-    return requestFrom(static_cast<uint16_t>(address), static_cast<size_t>(len), true);
+uint8_t TwoWire::requestFrom(uint8_t address, uint8_t len) {
+  return requestFrom(
+      static_cast<uint16_t>(address), static_cast<size_t>(len), true);
 }
 
-uint8_t TwoWire::requestFrom(uint16_t address, uint8_t len)
-{
-    return requestFrom(address, static_cast<size_t>(len), true);
+uint8_t TwoWire::requestFrom(uint16_t address, uint8_t len) {
+  return requestFrom(address, static_cast<size_t>(len), true);
 }
 
-uint8_t TwoWire::requestFrom(int address, int len)
-{
-    return requestFrom(static_cast<uint16_t>(address), static_cast<size_t>(len), true);
+uint8_t TwoWire::requestFrom(int address, int len) {
+  return requestFrom(
+      static_cast<uint16_t>(address), static_cast<size_t>(len), true);
 }
 
-uint8_t TwoWire::requestFrom(int address, int len, int sendStop)
-{
-    return static_cast<uint8_t>(requestFrom(static_cast<uint16_t>(address), static_cast<size_t>(len), static_cast<bool>(sendStop)));
+uint8_t TwoWire::requestFrom(int address, int len, int sendStop) {
+  return static_cast<uint8_t>(requestFrom(static_cast<uint16_t>(address),
+      static_cast<size_t>(len), static_cast<bool>(sendStop)));
 }
 
-void TwoWire::beginTransmission(int address)
-{
-    beginTransmission(static_cast<uint16_t>(address));
+void TwoWire::beginTransmission(int address) {
+  beginTransmission(static_cast<uint16_t>(address));
 }
 
-void TwoWire::beginTransmission(uint8_t address)
-{
-    beginTransmission(static_cast<uint16_t>(address));
+void TwoWire::beginTransmission(uint8_t address) {
+  beginTransmission(static_cast<uint16_t>(address));
 }
 
-uint8_t TwoWire::endTransmission(void)
-{
-    return endTransmission(true);
-}
+uint8_t TwoWire::endTransmission(void) { return endTransmission(true); }
 
 // size_t TwoWire::slaveWrite(const uint8_t *buffer, size_t len)
 // {
@@ -625,24 +591,25 @@ uint8_t TwoWire::endTransmission(void)
 //     return -1;
 // }
 
-// void TwoWire::onReceiveService(uint8_t num, uint8_t *inBytes, size_t numBytes, bool stop, void *arg)
+// void TwoWire::onReceiveService(uint8_t num, uint8_t *inBytes, size_t
+// numBytes, bool stop, void *arg)
 // {
 //     // TwoWire *wire = (TwoWire *)arg;
 //     // if (!wire->user_onReceive)
 //     // {
 //     //     return;
 //     // }
-//     // if (wire->_rx_buffer == NULL)
+//     // if (wire->rx_buffer_ == NULL)
 //     // {
 //     //     log_e("NULL RX buffer pointer");
 //     //     return;
 //     // }
 //     // for (uint8_t i = 0; i < numBytes; ++i)
 //     // {
-//     //     wire->_rx_buffer[i] = inBytes[i];
+//     //     wire->rx_buffer_[i] = inBytes[i];
 //     // }
-//     // wire->_rx_index = 0;
-//     // wire->_rx_length = numBytes;
+//     // wire->rx_index_ = 0;
+//     // wire->rx_length_ = numBytes;
 //     // wire->user_onReceive(numBytes);
 // }
 
@@ -653,7 +620,7 @@ uint8_t TwoWire::endTransmission(void)
 //     // {
 //     //     return;
 //     // }
-//     // if (wire->_tx_buffer == NULL)
+//     // if (wire->tx_buffer_ == NULL)
 //     // {
 //     //     log_e("NULL TX buffer pointer");
 //     //     return;
@@ -662,7 +629,7 @@ uint8_t TwoWire::endTransmission(void)
 //     // wire->user_onRequest();
 //     // if (wire->txLength)
 //     // {
-//     //     wire->slaveWrite((uint8_t *)wire->_tx_buffer, wire->txLength);
+//     //     wire->slaveWrite((uint8_t *)wire->tx_buffer_, wire->txLength);
 //     // }
 // }
 

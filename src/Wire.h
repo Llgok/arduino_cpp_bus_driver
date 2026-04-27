@@ -2,7 +2,7 @@
  * @Description: Wire
  * @Author: LILYGO_L
  * @Date: 2025-08-05 11:23:28
- * @LastEditTime: 2025-09-17 17:27:39
+ * @LastEditTime: 2026-04-27 16:09:03
  * @License: GPL 3.0
  */
 #pragma once
@@ -15,124 +15,107 @@
 // #define WIRE_HAS_END 1
 
 // #ifndef I2C_BUFFER_LENGTH
-// #define I2C_BUFFER_LENGTH 128 // Default size, if none is set using Wire::setBuffersize(size_t)
-// #endif
-// typedef void (*user_onRequest)(void);
+// #define I2C_BUFFER_LENGTH 128 // Default size, if none is set using
+// Wire::setBuffersize(size_t) #endif typedef void (*user_onRequest)(void);
 // typedef void (*user_onReceive)(uint8_t *, int);
 
-class TwoWire
-{
-protected:
-    bool init_flag = false;
-    uint8_t _num;
+class TwoWire {
+ public:
+  TwoWire(uint8_t bus_num) : num_(bus_num) {}
 
-    // size_t bufferSize;
-    std::unique_ptr<uint8_t[]> _rx_buffer;
-    size_t _rx_index;
-    size_t _rx_length;
+  // call setPins() first, so that begin() can be called without arguments from
+  // libraries
+  bool setPins(int sda, int scl);
 
-    std::vector<uint8_t> _tx_buffer;
-    // uint16_t txAddress;
-    // uint32_t _timeOutMillis;
-    // bool nonStop;
+  void set_freq(uint32_t freq_hz);
+  bool set_bus_handle(i2c_master_bus_handle_t bus_handle);
 
-private:
-    // bool is_slave;
-    // void (*user_onRequest)(void);
-    // void (*user_onReceive)(int);
-    // static void onRequestService(uint8_t, void *);
-    // static void onReceiveService(uint8_t, uint8_t *, size_t, bool, void *);
-    // bool initPins(int sdaPin, int sclPin);
-    // bool allocateWireBuffer(void);
-    void freeWireBuffer(void);
+  bool begin(int sda, int scl,
+      uint32_t frequency = -1);  // returns true, if successful init of i2c bus
+  // bool begin(uint8_t slaveAddr, int sda, int scl, uint32_t frequency);
+  // Explicit Overload for Arduino MainStream API compatibility
+  inline bool begin() { return begin(sda_, scl_, freq_hz_); }
+  // inline bool begin(uint8_t addr)
+  // {
+  //     return begin(addr, -1, -1, -1);
+  // }
+  // inline bool begin(int addr)
+  // {
+  //     return begin(static_cast<uint8_t>(addr), -1, -1, 0);
+  // }
+  bool end();
 
-public:
-    std::shared_ptr<Cpp_Bus_Driver::Hardware_Iic_1> _bus = std::make_shared<Cpp_Bus_Driver::Hardware_Iic_1>(-1, -1, static_cast<i2c_port_t>(_num));
+  // size_t setBufferSize(size_t bSize);
 
-    TwoWire(uint8_t bus_num)
-        : _num(bus_num)
-    {
-    }
+  // void setTimeOut(uint16_t timeOutMillis); // default timeout of i2c
+  // transactions is 50ms uint16_t getTimeOut();
 
-    // call setPins() first, so that begin() can be called without arguments from libraries
-    bool setPins(int sda, int scl);
+  // bool setClock(uint32_t);
+  // uint32_t getClock();
 
-    void set_freq(uint32_t freq_hz);
+  void beginTransmission(uint16_t address);
+  void beginTransmission(uint8_t address);
+  void beginTransmission(int address);
 
-    bool begin(int sda, int scl, uint32_t frequency = -1); // returns true, if successful init of i2c bus
-    // bool begin(uint8_t slaveAddr, int sda, int scl, uint32_t frequency);
-    // Explicit Overload for Arduino MainStream API compatibility
-    inline bool begin()
-    {
-        return begin(_bus->_sda, _bus->_scl, _bus->_freq_hz);
-    }
-    // inline bool begin(uint8_t addr)
-    // {
-    //     return begin(addr, -1, -1, -1);
-    // }
-    // inline bool begin(int addr)
-    // {
-    //     return begin(static_cast<uint8_t>(addr), -1, -1, 0);
-    // }
-    bool end();
+  uint8_t endTransmission(bool sendStop);
+  uint8_t endTransmission(void);
 
-    // size_t setBufferSize(size_t bSize);
+  size_t requestFrom(uint16_t address, size_t size, bool sendStop);
+  uint8_t requestFrom(uint16_t address, uint8_t size, bool sendStop);
+  uint8_t requestFrom(uint16_t address, uint8_t size, uint8_t sendStop);
+  size_t requestFrom(uint8_t address, size_t len, bool stopBit);
+  uint8_t requestFrom(uint16_t address, uint8_t size);
+  uint8_t requestFrom(uint8_t address, uint8_t size, uint8_t sendStop);
+  uint8_t requestFrom(uint8_t address, uint8_t size);
+  uint8_t requestFrom(int address, int size, int sendStop);
+  uint8_t requestFrom(int address, int size);
 
-    // void setTimeOut(uint16_t timeOutMillis); // default timeout of i2c transactions is 50ms
-    // uint16_t getTimeOut();
+  size_t write(uint8_t);
+  size_t write(const uint8_t*, size_t);
+  int available(void);
+  int read(void);
+  size_t readBytes(uint8_t* buffer, size_t length);
+  // int peek(void);
+  void flush(void);
 
-    // bool setClock(uint32_t);
-    // uint32_t getClock();
+  inline size_t write(const char* s) { return write((uint8_t*)s, strlen(s)); }
+  inline size_t write(unsigned long n) { return write((uint8_t)n); }
+  inline size_t write(long n) { return write((uint8_t)n); }
+  inline size_t write(unsigned int n) { return write((uint8_t)n); }
+  inline size_t write(int n) { return write((uint8_t)n); }
 
-    void beginTransmission(uint16_t address);
-    void beginTransmission(uint8_t address);
-    void beginTransmission(int address);
+  // void onReceive(void (*)(int));
+  // void onRequest(void (*)(void));
+  // size_t slaveWrite(const uint8_t *, size_t);
 
-    uint8_t endTransmission(bool sendStop);
-    uint8_t endTransmission(void);
+ private:
+  int32_t sda_, scl_;
+  uint32_t freq_hz_;
 
-    size_t requestFrom(uint16_t address, size_t size, bool sendStop);
-    uint8_t requestFrom(uint16_t address, uint8_t size, bool sendStop);
-    uint8_t requestFrom(uint16_t address, uint8_t size, uint8_t sendStop);
-    size_t requestFrom(uint8_t address, size_t len, bool stopBit);
-    uint8_t requestFrom(uint16_t address, uint8_t size);
-    uint8_t requestFrom(uint8_t address, uint8_t size, uint8_t sendStop);
-    uint8_t requestFrom(uint8_t address, uint8_t size);
-    uint8_t requestFrom(int address, int size, int sendStop);
-    uint8_t requestFrom(int address, int size);
+  bool init_flag_ = false;
+  uint8_t num_;
 
-    size_t write(uint8_t);
-    size_t write(const uint8_t *, size_t);
-    int available(void);
-    int read(void);
-    size_t readBytes(uint8_t *buffer, size_t length);
-    // int peek(void);
-    void flush(void);
+  // size_t bufferSize;
+  std::unique_ptr<uint8_t[]> rx_buffer_;
+  size_t rx_index_;
+  size_t rx_length_;
 
-    inline size_t write(const char *s)
-    {
-        return write((uint8_t *)s, strlen(s));
-    }
-    inline size_t write(unsigned long n)
-    {
-        return write((uint8_t)n);
-    }
-    inline size_t write(long n)
-    {
-        return write((uint8_t)n);
-    }
-    inline size_t write(unsigned int n)
-    {
-        return write((uint8_t)n);
-    }
-    inline size_t write(int n)
-    {
-        return write((uint8_t)n);
-    }
+  std::vector<uint8_t> tx_buffer_;
+  // uint16_t txAddress;
+  // uint32_t _timeOutMillis;
+  // bool nonStop;
 
-    // void onReceive(void (*)(int));
-    // void onRequest(void (*)(void));
-    // size_t slaveWrite(const uint8_t *, size_t);
+  std::shared_ptr<cpp_bus_driver::HardwareI2c1> bus_;
+  i2c_master_bus_handle_t bus_handle_ = nullptr;
+
+  // bool is_slave;
+  // void (*user_onRequest)(void);
+  // void (*user_onReceive)(int);
+  // static void onRequestService(uint8_t, void *);
+  // static void onReceiveService(uint8_t, uint8_t *, size_t, bool, void *);
+  // bool initPins(int sdaPin, int sclPin);
+  // bool allocateWireBuffer(void);
+  void freeWireBuffer(void);
 };
 
 extern TwoWire Wire;

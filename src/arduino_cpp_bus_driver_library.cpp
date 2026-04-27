@@ -2,169 +2,179 @@
  * @Description: None
  * @Author: LILYGO_L
  * @Date: 2025-08-05 11:44:23
- * @LastEditTime: 2025-09-08 18:14:46
+ * @LastEditTime: 2026-04-22 14:06:30
  * @License: GPL 3.0
  */
 #include "arduino_cpp_bus_driver_library.h"
 
-struct Interrupt_Arg
-{
-    std::function<void(void)> interrupt_function;
+struct InterruptArg {
+  std::function<void(void)> interrupt_function;
 };
 
-static std::unordered_map<uint8_t, std::unique_ptr<Interrupt_Arg>> Interrupt_Map;
+static std::unordered_map<uint8_t, std::unique_ptr<InterruptArg>> Interrupt_Map;
 
-auto Arduino_Cpp_Bus_Driver_Tool = std::make_unique<Cpp_Bus_Driver::Tool>();
+auto g_arduino_cpp_bus_driver_tool = std::make_unique<cpp_bus_driver::Tool>();
 
-static void IRAM_ATTR Interrupt_Callback_Template(void *arg)
-{
-    auto *local_arg = static_cast<Interrupt_Arg *>(arg);
-    if (local_arg->interrupt_function)
-    {
-        local_arg->interrupt_function();
-    }
+static void IRAM_ATTR InterruptCallbackTemplate(void* arg) {
+  auto* local_arg = static_cast<InterruptArg*>(arg);
+  if (local_arg->interrupt_function) {
+    local_arg->interrupt_function();
+  }
 }
 
-void delay(uint32_t ms)
-{
-    Arduino_Cpp_Bus_Driver_Tool->delay_ms(ms);
+void delay(uint32_t ms) { g_arduino_cpp_bus_driver_tool->DelayMs(ms); }
+
+void delayMicroseconds(uint32_t us) {
+  g_arduino_cpp_bus_driver_tool->DelayUs(us);
 }
 
-void delayMicroseconds(uint32_t us)
-{
-    Arduino_Cpp_Bus_Driver_Tool->delay_us(us);
+int64_t millis(void) {
+  return g_arduino_cpp_bus_driver_tool->GetSystemTimeMs();
 }
 
-int64_t millis(void)
-{
-    return Arduino_Cpp_Bus_Driver_Tool->get_system_time_ms();
-}
+void pinMode(uint8_t pin, uint8_t mode) {
+  if (pin == static_cast<uint8_t>(-1)) {
+    g_arduino_cpp_bus_driver_tool->LogMessage(
+        cpp_bus_driver::Tool::LogLevel::kInfo, __FILE__, __LINE__,
+        "Value out of range\n");
+    return;
+  }
 
-void pinMode(uint8_t pin, uint8_t mode)
-{
-    if (pin == static_cast<uint8_t>(-1))
-    {
-        Arduino_Cpp_Bus_Driver_Tool->assert_log(Cpp_Bus_Driver::Tool::Log_Level::INFO, __FILE__, __LINE__, "pinMode fail (pin == -1)\n");
-        return;
-    }
-
-    switch (mode)
-    {
+  switch (mode) {
     case INPUT:
-        Arduino_Cpp_Bus_Driver_Tool->pin_mode(pin, Cpp_Bus_Driver::Tool::Pin_Mode::INPUT);
-        break;
+      g_arduino_cpp_bus_driver_tool->SetPinMode(
+          pin, cpp_bus_driver::Tool::PinMode::kInput);
+      break;
     case OUTPUT:
-        Arduino_Cpp_Bus_Driver_Tool->pin_mode(pin, Cpp_Bus_Driver::Tool::Pin_Mode::OUTPUT);
-        break;
+      g_arduino_cpp_bus_driver_tool->SetPinMode(
+          pin, cpp_bus_driver::Tool::PinMode::kOutput);
+      break;
     case PULLUP:
-        Arduino_Cpp_Bus_Driver_Tool->pin_mode(pin, Cpp_Bus_Driver::Tool::Pin_Mode::INPUT_OUTPUT, Cpp_Bus_Driver::Tool::Pin_Status::PULLUP);
-        break;
+      g_arduino_cpp_bus_driver_tool->SetPinMode(pin,
+          cpp_bus_driver::Tool::PinMode::kInputOutput,
+          cpp_bus_driver::Tool::PinStatus::kPullup);
+      break;
     case INPUT_PULLUP:
-        Arduino_Cpp_Bus_Driver_Tool->pin_mode(pin, Cpp_Bus_Driver::Tool::Pin_Mode::INPUT, Cpp_Bus_Driver::Tool::Pin_Status::PULLUP);
-        break;
+      g_arduino_cpp_bus_driver_tool->SetPinMode(pin,
+          cpp_bus_driver::Tool::PinMode::kInput,
+          cpp_bus_driver::Tool::PinStatus::kPullup);
+      break;
     case PULLDOWN:
-        Arduino_Cpp_Bus_Driver_Tool->pin_mode(pin, Cpp_Bus_Driver::Tool::Pin_Mode::INPUT_OUTPUT, Cpp_Bus_Driver::Tool::Pin_Status::PULLDOWN);
-        break;
+      g_arduino_cpp_bus_driver_tool->SetPinMode(pin,
+          cpp_bus_driver::Tool::PinMode::kInputOutput,
+          cpp_bus_driver::Tool::PinStatus::kPulldown);
+      break;
     case INPUT_PULLDOWN:
-        Arduino_Cpp_Bus_Driver_Tool->pin_mode(pin, Cpp_Bus_Driver::Tool::Pin_Mode::INPUT, Cpp_Bus_Driver::Tool::Pin_Status::PULLDOWN);
-        break;
+      g_arduino_cpp_bus_driver_tool->SetPinMode(pin,
+          cpp_bus_driver::Tool::PinMode::kInput,
+          cpp_bus_driver::Tool::PinStatus::kPulldown);
+      break;
     case OPEN_DRAIN:
-        Arduino_Cpp_Bus_Driver_Tool->pin_mode(pin, Cpp_Bus_Driver::Tool::Pin_Mode::INPUT_OUTPUT_OD);
-        break;
+      g_arduino_cpp_bus_driver_tool->SetPinMode(
+          pin, cpp_bus_driver::Tool::PinMode::kInputOutputOd);
+      break;
     case OUTPUT_OPEN_DRAIN:
-        Arduino_Cpp_Bus_Driver_Tool->pin_mode(pin, Cpp_Bus_Driver::Tool::Pin_Mode::OUTPUT_OD);
-        break;
+      g_arduino_cpp_bus_driver_tool->SetPinMode(
+          pin, cpp_bus_driver::Tool::PinMode::kOutputOd);
+      break;
     case ANALOG:
-        Arduino_Cpp_Bus_Driver_Tool->pin_mode(pin, Cpp_Bus_Driver::Tool::Pin_Mode::DISABLE);
-        break;
+      g_arduino_cpp_bus_driver_tool->SetPinMode(
+          pin, cpp_bus_driver::Tool::PinMode::kDisable);
+      break;
 
     default:
-        Arduino_Cpp_Bus_Driver_Tool->assert_log(Cpp_Bus_Driver::Tool::Log_Level::INFO, __FILE__, __LINE__, "set pinMode fail (unknown mode: %d)\n", mode);
-        break;
-    }
+      g_arduino_cpp_bus_driver_tool->LogMessage(
+          cpp_bus_driver::Tool::LogLevel::kInfo, __FILE__, __LINE__,
+          "set pinMode fail (unknown mode: %d)\n", mode);
+      break;
+  }
 }
 
-void digitalWrite(uint8_t pin, uint8_t val)
-{
-    if (pin == static_cast<uint8_t>(-1))
-    {
-        // Arduino_Cpp_Bus_Driver_Tool->assert_log(Cpp_Bus_Driver::Tool::Log_Level::INFO, __FILE__, __LINE__, "digitalWrite fail (pin == -1)\n");
-        return;
-    }
+void digitalWrite(uint8_t pin, uint8_t val) {
+  if (pin == static_cast<uint8_t>(-1)) {
+    // g_arduino_cpp_bus_driver_tool->LogMessage(cpp_bus_driver::Tool::LogLevel::kInfo,
+    // __FILE__, __LINE__, "Value out of range\n");
+    return;
+  }
 
-    Arduino_Cpp_Bus_Driver_Tool->pin_write(pin, val);
+  g_arduino_cpp_bus_driver_tool->PinWrite(pin, val);
 }
 
-int digitalRead(uint8_t pin)
-{
-    if (pin == static_cast<uint8_t>(-1))
-    {
-        // Arduino_Cpp_Bus_Driver_Tool->assert_log(Cpp_Bus_Driver::Tool::Log_Level::INFO, __FILE__, __LINE__, "digitalRead fail (pin == -1)\n");
-        return 0;
-    }
+int digitalRead(uint8_t pin) {
+  if (pin == static_cast<uint8_t>(-1)) {
+    // g_arduino_cpp_bus_driver_tool->LogMessage(cpp_bus_driver::Tool::LogLevel::kInfo,
+    // __FILE__, __LINE__, "Value out of range\n");
+    return 0;
+  }
 
-    return Arduino_Cpp_Bus_Driver_Tool->pin_read(pin);
+  return g_arduino_cpp_bus_driver_tool->PinRead(pin);
 }
 
-void attachInterrupt(uint8_t pin, std::function<void(void)> intRoutine, int mode)
-{
-    if (pin == static_cast<uint8_t>(-1))
-    {
-        Arduino_Cpp_Bus_Driver_Tool->assert_log(Cpp_Bus_Driver::Tool::Log_Level::INFO, __FILE__, __LINE__, "attachInterrupt fail (pin == -1)\n");
-        return;
-    }
+void attachInterrupt(
+    uint8_t pin, std::function<void(void)> intRoutine, int mode) {
+  if (pin == static_cast<uint8_t>(-1)) {
+    g_arduino_cpp_bus_driver_tool->LogMessage(
+        cpp_bus_driver::Tool::LogLevel::kInfo, __FILE__, __LINE__,
+        "Value out of range\n");
+    return;
+  }
 
-    Cpp_Bus_Driver::Tool::Interrupt_Mode buffer_mode = Cpp_Bus_Driver::Tool::Interrupt_Mode::DISABLE;
-    switch (mode)
-    {
+  cpp_bus_driver::Tool::InterruptMode buffer_mode =
+      cpp_bus_driver::Tool::InterruptMode::kDisable;
+  switch (mode) {
     case DISABLED:
-        break;
+      break;
     case RISING:
-        buffer_mode = Cpp_Bus_Driver::Tool::Interrupt_Mode::RISING;
-        break;
+      buffer_mode = cpp_bus_driver::Tool::InterruptMode::kRising;
+      break;
     case FALLING:
-        buffer_mode = Cpp_Bus_Driver::Tool::Interrupt_Mode::FALLING;
-        break;
+      buffer_mode = cpp_bus_driver::Tool::InterruptMode::kFalling;
+      break;
     case CHANGE:
-        buffer_mode = Cpp_Bus_Driver::Tool::Interrupt_Mode::CHANGE;
-        break;
+      buffer_mode = cpp_bus_driver::Tool::InterruptMode::kChange;
+      break;
     case ONLOW:
-        buffer_mode = Cpp_Bus_Driver::Tool::Interrupt_Mode::ONLOW;
-        break;
+      buffer_mode = cpp_bus_driver::Tool::InterruptMode::kOnLow;
+      break;
     case ONHIGH:
-        buffer_mode = Cpp_Bus_Driver::Tool::Interrupt_Mode::ONHIGH;
-        break;
+      buffer_mode = cpp_bus_driver::Tool::InterruptMode::kOnHigh;
+      break;
     case ONLOW_WE:
-        buffer_mode = Cpp_Bus_Driver::Tool::Interrupt_Mode::ONLOW;
-        break;
+      buffer_mode = cpp_bus_driver::Tool::InterruptMode::kOnLow;
+      break;
     case ONHIGH_WE:
-        buffer_mode = Cpp_Bus_Driver::Tool::Interrupt_Mode::ONHIGH;
-        break;
+      buffer_mode = cpp_bus_driver::Tool::InterruptMode::kOnHigh;
+      break;
 
     default:
-        Arduino_Cpp_Bus_Driver_Tool->assert_log(Cpp_Bus_Driver::Tool::Log_Level::INFO, __FILE__, __LINE__, "set attachInterrupt mode fail (unknown mode: %d)\n", mode);
-        break;
-    }
+      g_arduino_cpp_bus_driver_tool->LogMessage(
+          cpp_bus_driver::Tool::LogLevel::kInfo, __FILE__, __LINE__,
+          "Value out of range\n");
+      break;
+  }
 
-    auto arg = std::make_unique<Interrupt_Arg>(intRoutine);
-    Interrupt_Map[pin] = std::move(arg);
+  auto arg = std::make_unique<InterruptArg>(intRoutine);
+  Interrupt_Map[pin] = std::move(arg);
 
-    if (Arduino_Cpp_Bus_Driver_Tool->create_gpio_interrupt(pin, buffer_mode, Interrupt_Callback_Template, Interrupt_Map[pin].get()) == false)
-    {
-        Arduino_Cpp_Bus_Driver_Tool->assert_log(Cpp_Bus_Driver::Tool::Log_Level::INFO, __FILE__, __LINE__, "create_gpio_interrupt fail\n");
-    }
+  if (!g_arduino_cpp_bus_driver_tool->InitGpioInterrupt(pin, buffer_mode,
+          InterruptCallbackTemplate, Interrupt_Map[pin].get())) {
+    g_arduino_cpp_bus_driver_tool->LogMessage(
+        cpp_bus_driver::Tool::LogLevel::kInfo, __FILE__, __LINE__,
+        "create_gpio_interrupt fail\n");
+  }
 }
 
-void detachInterrupt(uint8_t pin)
-{
-    if (pin == static_cast<uint8_t>(-1))
-    {
-        Arduino_Cpp_Bus_Driver_Tool->assert_log(Cpp_Bus_Driver::Tool::Log_Level::INFO, __FILE__, __LINE__, "detachInterrupt fail (pin == -1)\n");
-        return;
-    }
+void detachInterrupt(uint8_t pin) {
+  if (pin == static_cast<uint8_t>(-1)) {
+    g_arduino_cpp_bus_driver_tool->LogMessage(
+        cpp_bus_driver::Tool::LogLevel::kInfo, __FILE__, __LINE__,
+        "Value out of range\n");
+    return;
+  }
 
-    if (Arduino_Cpp_Bus_Driver_Tool->delete_gpio_interrupt(pin) == false)
-    {
-        Arduino_Cpp_Bus_Driver_Tool->assert_log(Cpp_Bus_Driver::Tool::Log_Level::INFO, __FILE__, __LINE__, "delete_gpio_interrupt fail\n");
-    }
+  if (!g_arduino_cpp_bus_driver_tool->DeinitGpioInterrupt(pin)) {
+    g_arduino_cpp_bus_driver_tool->LogMessage(
+        cpp_bus_driver::Tool::LogLevel::kBus, __FILE__, __LINE__,
+        "DeleteGpioInterrupt fail\n");
+  }
 }
