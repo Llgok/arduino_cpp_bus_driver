@@ -42,44 +42,44 @@ void pinMode(uint8_t pin, uint8_t mode) {
 
   switch (mode) {
     case INPUT:
-      g_arduino_cpp_bus_driver_tool->SetPinMode(
-          pin, cpp_bus_driver::Tool::PinMode::kInput);
+      g_arduino_cpp_bus_driver_tool->SetGpioMode(
+          pin, cpp_bus_driver::Tool::GpioMode::kInput);
       break;
     case OUTPUT:
-      g_arduino_cpp_bus_driver_tool->SetPinMode(
-          pin, cpp_bus_driver::Tool::PinMode::kOutput);
+      g_arduino_cpp_bus_driver_tool->SetGpioMode(
+          pin, cpp_bus_driver::Tool::GpioMode::kOutput);
       break;
     case PULLUP:
-      g_arduino_cpp_bus_driver_tool->SetPinMode(pin,
-          cpp_bus_driver::Tool::PinMode::kInputOutput,
-          cpp_bus_driver::Tool::PinStatus::kPullup);
+      g_arduino_cpp_bus_driver_tool->SetGpioMode(pin,
+          cpp_bus_driver::Tool::GpioMode::kInputOutput,
+          cpp_bus_driver::Tool::GpioStatus::kPullup);
       break;
     case INPUT_PULLUP:
-      g_arduino_cpp_bus_driver_tool->SetPinMode(pin,
-          cpp_bus_driver::Tool::PinMode::kInput,
-          cpp_bus_driver::Tool::PinStatus::kPullup);
+      g_arduino_cpp_bus_driver_tool->SetGpioMode(pin,
+          cpp_bus_driver::Tool::GpioMode::kInput,
+          cpp_bus_driver::Tool::GpioStatus::kPullup);
       break;
     case PULLDOWN:
-      g_arduino_cpp_bus_driver_tool->SetPinMode(pin,
-          cpp_bus_driver::Tool::PinMode::kInputOutput,
-          cpp_bus_driver::Tool::PinStatus::kPulldown);
+      g_arduino_cpp_bus_driver_tool->SetGpioMode(pin,
+          cpp_bus_driver::Tool::GpioMode::kInputOutput,
+          cpp_bus_driver::Tool::GpioStatus::kPulldown);
       break;
     case INPUT_PULLDOWN:
-      g_arduino_cpp_bus_driver_tool->SetPinMode(pin,
-          cpp_bus_driver::Tool::PinMode::kInput,
-          cpp_bus_driver::Tool::PinStatus::kPulldown);
+      g_arduino_cpp_bus_driver_tool->SetGpioMode(pin,
+          cpp_bus_driver::Tool::GpioMode::kInput,
+          cpp_bus_driver::Tool::GpioStatus::kPulldown);
       break;
     case OPEN_DRAIN:
-      g_arduino_cpp_bus_driver_tool->SetPinMode(
-          pin, cpp_bus_driver::Tool::PinMode::kInputOutputOd);
+      g_arduino_cpp_bus_driver_tool->SetGpioMode(
+          pin, cpp_bus_driver::Tool::GpioMode::kInputOutputOd);
       break;
     case OUTPUT_OPEN_DRAIN:
-      g_arduino_cpp_bus_driver_tool->SetPinMode(
-          pin, cpp_bus_driver::Tool::PinMode::kOutputOd);
+      g_arduino_cpp_bus_driver_tool->SetGpioMode(
+          pin, cpp_bus_driver::Tool::GpioMode::kOutputOd);
       break;
     case ANALOG:
-      g_arduino_cpp_bus_driver_tool->SetPinMode(
-          pin, cpp_bus_driver::Tool::PinMode::kDisable);
+      g_arduino_cpp_bus_driver_tool->SetGpioMode(
+          pin, cpp_bus_driver::Tool::GpioMode::kDisable);
       break;
 
     default:
@@ -97,7 +97,7 @@ void digitalWrite(uint8_t pin, uint8_t val) {
     return;
   }
 
-  g_arduino_cpp_bus_driver_tool->PinWrite(pin, val);
+  g_arduino_cpp_bus_driver_tool->GpioWrite(pin, val);
 }
 
 int digitalRead(uint8_t pin) {
@@ -107,7 +107,7 @@ int digitalRead(uint8_t pin) {
     return 0;
   }
 
-  return g_arduino_cpp_bus_driver_tool->PinRead(pin);
+  return g_arduino_cpp_bus_driver_tool->GpioRead(pin);
 }
 
 void attachInterrupt(
