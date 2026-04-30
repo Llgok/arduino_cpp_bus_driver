@@ -287,40 +287,19 @@ bool TwoWire::begin(int sdaPin, int sclPin, uint32_t frequency) {
   return true;
 }
 
-// bool TwoWire::end()
-// {
-//     //     esp_err_t err = ESP_OK;
-//     // #if !CONFIG_DISABLE_HAL_LOCKS
-//     //     if (lock != NULL)
-//     //     {
-//     //         // acquire lock
-//     //         if (xSemaphoreTake(lock, portMAX_DELAY) != pdTRUE)
-//     //         {
-//     //             log_e("could not acquire lock");
-//     //             return false;
-//     //         }
-//     // #endif
-//     //         if (is_slave)
-//     //         {
-//     //             err = i2cSlaveDeinit(num);
-//     //             if (err == ESP_OK)
-//     //             {
-//     //                 is_slave = false;
-//     //             }
-//     //         }
-//     //         else if (i2cIsInit(num))
-//     //         {
-//     //             err = i2cDeinit(num);
-//     //         }
-//     //         freeWireBuffer();
-//     // #if !CONFIG_DISABLE_HAL_LOCKS
-//     //         // release lock
-//     //         xSemaphoreGive(lock);
-//     //     }
-//     // #endif
-//     //     return (err == ESP_OK);
-//     return 0;
-// }
+bool TwoWire::end(bool delete_bus) {
+  bool result = true;
+
+  result &= bus_->Deinit(delete_bus);
+
+  tx_buffer_.clear();
+  rx_buffer_.reset();
+  rx_index_ = 0;
+  rx_length_ = 0;
+  init_flag_ = false;
+
+  return result;
+}
 
 // uint32_t TwoWire::getClock()
 // {

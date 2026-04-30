@@ -2,7 +2,7 @@
  * @Description: Wire
  * @Author: LILYGO_L
  * @Date: 2025-08-05 11:23:28
- * @LastEditTime: 2026-04-27 16:09:03
+ * @LastEditTime: 2026-04-29 15:31:37
  * @License: GPL 3.0
  */
 #pragma once
@@ -43,7 +43,8 @@ class TwoWire {
   // {
   //     return begin(static_cast<uint8_t>(addr), -1, -1, 0);
   // }
-  bool end();
+  bool end() { return false; }
+  bool end(bool delete_bus);
 
   // size_t setBufferSize(size_t bSize);
 
