@@ -290,7 +290,14 @@ bool TwoWire::begin(int sdaPin, int sclPin, uint32_t frequency) {
 bool TwoWire::end(bool delete_bus) {
   bool result = true;
 
-  result &= bus_->Deinit(delete_bus);
+  if (bus_ != nullptr) {
+    result &= bus_->Deinit(delete_bus);
+    bus_.reset();
+
+    if (delete_bus) {
+      bus_handle_ = nullptr;
+    }
+  }
 
   tx_buffer_.clear();
   rx_buffer_.reset();
