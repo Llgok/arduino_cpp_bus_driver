@@ -94,7 +94,7 @@ void SPIClass::beginTransaction(SPISettings settings) {
           case SPI_LSBFIRST:
             return SPI_DEVICE_BIT_LSBFIRST;
           default:
-            bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kInfo, __FILE__,
+            bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kWarning, __FILE__,
                 __LINE__, "Value out of range\n");
             return -1;
         }
@@ -103,7 +103,7 @@ void SPIClass::beginTransaction(SPISettings settings) {
   bus_->set_bus_init_flag(bus_init_flag_);
 
   if (!bus_->Init(settings.clock_, cs_)) {
-    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kBus, __FILE__, __LINE__,
+    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kError, __FILE__, __LINE__,
         "Init failed\n");
   }
 
@@ -115,14 +115,14 @@ void SPIClass::endTransaction() {
   size_t bufferrx_buffer__length = buffertx_buffer__length - rx_length_;
 
   if (buffertx_buffer__length == 0) {
-    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kInfo, __FILE__, __LINE__,
+    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kWarning, __FILE__, __LINE__,
         "Value out of range\n");
     return;
   }
 
   if (bufferrx_buffer__length == 0) {
     if (!bus_->Write(tx_buffer_.data(), buffertx_buffer__length)) {
-      bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kBus, __FILE__, __LINE__,
+      bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kError, __FILE__, __LINE__,
           "Write failed\n");
     }
 
@@ -136,7 +136,7 @@ void SPIClass::endTransaction() {
 
     if (!bus_->WriteRead(
             tx_buffer_.data(), buffer_rx_data.get(), buffertx_buffer__length)) {
-      bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kBus, __FILE__, __LINE__,
+      bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kError, __FILE__, __LINE__,
           "WriteRead failed\n");
     }
 
@@ -230,7 +230,7 @@ uint8_t SPIClass::transfer(uint8_t data) {
 
 void SPIClass::writeBytes(const uint8_t* data, uint32_t size) {
   if (!bus_->Write(data, size)) {
-    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kBus, __FILE__, __LINE__,
+    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kError, __FILE__, __LINE__,
         "Write failed\n");
   }
 }

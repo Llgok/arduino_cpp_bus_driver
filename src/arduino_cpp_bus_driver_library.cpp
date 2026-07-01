@@ -2,7 +2,7 @@
  * @Description: None
  * @Author: LILYGO_L
  * @Date: 2025-08-05 11:44:23
- * @LastEditTime: 2026-04-22 14:06:30
+ * @LastEditTime: 2026-07-01 14:35:00
  * @License: GPL 3.0
  */
 #include "arduino_cpp_bus_driver_library.h"
@@ -35,7 +35,7 @@ int64_t millis(void) {
 void pinMode(uint8_t pin, uint8_t mode) {
   if (pin == static_cast<uint8_t>(-1)) {
     g_arduino_cpp_bus_driver_tool->LogMessage(
-        cpp_bus_driver::Tool::LogLevel::kInfo, __FILE__, __LINE__,
+        cpp_bus_driver::Tool::LogLevel::kWarning, __FILE__, __LINE__,
         "Value out of range\n");
     return;
   }
@@ -84,15 +84,15 @@ void pinMode(uint8_t pin, uint8_t mode) {
 
     default:
       g_arduino_cpp_bus_driver_tool->LogMessage(
-          cpp_bus_driver::Tool::LogLevel::kInfo, __FILE__, __LINE__,
-          "set pinMode fail (unknown mode: %d)\n", mode);
+          cpp_bus_driver::Tool::LogLevel::kWarning, __FILE__, __LINE__,
+          "Value out of range\n");
       break;
   }
 }
 
 void digitalWrite(uint8_t pin, uint8_t val) {
   if (pin == static_cast<uint8_t>(-1)) {
-    // g_arduino_cpp_bus_driver_tool->LogMessage(cpp_bus_driver::Tool::LogLevel::kInfo,
+    // g_arduino_cpp_bus_driver_tool->LogMessage(cpp_bus_driver::Tool::LogLevel::kWarning,
     // __FILE__, __LINE__, "Value out of range\n");
     return;
   }
@@ -102,7 +102,7 @@ void digitalWrite(uint8_t pin, uint8_t val) {
 
 int digitalRead(uint8_t pin) {
   if (pin == static_cast<uint8_t>(-1)) {
-    // g_arduino_cpp_bus_driver_tool->LogMessage(cpp_bus_driver::Tool::LogLevel::kInfo,
+    // g_arduino_cpp_bus_driver_tool->LogMessage(cpp_bus_driver::Tool::LogLevel::kWarning,
     // __FILE__, __LINE__, "Value out of range\n");
     return 0;
   }
@@ -114,7 +114,7 @@ void attachInterrupt(
     uint8_t pin, std::function<void(void)> intRoutine, int mode) {
   if (pin == static_cast<uint8_t>(-1)) {
     g_arduino_cpp_bus_driver_tool->LogMessage(
-        cpp_bus_driver::Tool::LogLevel::kInfo, __FILE__, __LINE__,
+        cpp_bus_driver::Tool::LogLevel::kWarning, __FILE__, __LINE__,
         "Value out of range\n");
     return;
   }
@@ -148,7 +148,7 @@ void attachInterrupt(
 
     default:
       g_arduino_cpp_bus_driver_tool->LogMessage(
-          cpp_bus_driver::Tool::LogLevel::kInfo, __FILE__, __LINE__,
+          cpp_bus_driver::Tool::LogLevel::kWarning, __FILE__, __LINE__,
           "Value out of range\n");
       break;
   }
@@ -159,7 +159,7 @@ void attachInterrupt(
   if (!g_arduino_cpp_bus_driver_tool->InitGpioInterrupt(pin, buffer_mode,
           InterruptCallbackTemplate, Interrupt_Map[pin].get())) {
     g_arduino_cpp_bus_driver_tool->LogMessage(
-        cpp_bus_driver::Tool::LogLevel::kInfo, __FILE__, __LINE__,
+        cpp_bus_driver::Tool::LogLevel::kError, __FILE__, __LINE__,
         "create_gpio_interrupt fail\n");
   }
 }
@@ -167,14 +167,14 @@ void attachInterrupt(
 void detachInterrupt(uint8_t pin) {
   if (pin == static_cast<uint8_t>(-1)) {
     g_arduino_cpp_bus_driver_tool->LogMessage(
-        cpp_bus_driver::Tool::LogLevel::kInfo, __FILE__, __LINE__,
+        cpp_bus_driver::Tool::LogLevel::kWarning, __FILE__, __LINE__,
         "Value out of range\n");
     return;
   }
 
   if (!g_arduino_cpp_bus_driver_tool->DeinitGpioInterrupt(pin)) {
     g_arduino_cpp_bus_driver_tool->LogMessage(
-        cpp_bus_driver::Tool::LogLevel::kBus, __FILE__, __LINE__,
+        cpp_bus_driver::Tool::LogLevel::kError, __FILE__, __LINE__,
         "DeleteGpioInterrupt fail\n");
   }
 }
