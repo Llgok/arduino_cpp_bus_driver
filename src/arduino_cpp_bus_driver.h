@@ -8,7 +8,13 @@
 
 #pragma once
 
-#include "cpp_bus_driver_library.h"
+#include <cstring>
+#include <functional>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "cpp_bus_driver.h"
 
 constexpr uint8_t LOW = 0x0;
 constexpr uint8_t HIGH = 0x1;

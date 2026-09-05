@@ -90,23 +90,24 @@ class TwoWire {
   // size_t slaveWrite(const uint8_t *, size_t);
 
  private:
-  int32_t sda_, scl_;
-  uint32_t freq_hz_;
+  int32_t sda_ = -1;
+  int32_t scl_ = -1;
+  uint32_t freq_hz_ = 100000;
 
   bool init_flag_ = false;
   uint8_t num_;
 
   // size_t bufferSize;
   std::unique_ptr<uint8_t[]> rx_buffer_;
-  size_t rx_index_;
-  size_t rx_length_;
+  size_t rx_index_ = 0;
+  size_t rx_length_ = 0;
 
   std::vector<uint8_t> tx_buffer_;
   // uint16_t txAddress;
   // uint32_t _timeOutMillis;
   // bool nonStop;
 
-  std::shared_ptr<cpp_bus_driver::HardwareI2c1> bus_;
+  std::shared_ptr<cpp_bus_driver::HardwareI2c> bus_;
   i2c_master_bus_handle_t bus_handle_ = nullptr;
 
   // bool is_slave;

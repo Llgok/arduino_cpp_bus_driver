@@ -275,7 +275,7 @@ bool TwoWire::begin(int sdaPin, int sclPin, uint32_t frequency) {
   scl_ = sclPin;
   freq_hz_ = frequency;
 
-  bus_ = std::make_shared<cpp_bus_driver::HardwareI2c1>(
+  bus_ = std::make_shared<cpp_bus_driver::HardwareI2c>(
       sda_, scl_, static_cast<i2c_port_t>(num_));
 
   if (bus_handle_ != nullptr) {
@@ -381,7 +381,7 @@ void TwoWire::beginTransmission(uint16_t address) {
   }
 
   if (!bus_->Init(freq_hz_, address)) {
-    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kError, __FILE__, __LINE__,
+    bus_->LogMessage(cpp_bus_driver::Logger::LogLevel::kError, __FILE__, __LINE__,
         "Init failed\n");
     return;
   }
@@ -394,13 +394,13 @@ uint8_t TwoWire::endTransmission(bool sendStop) {
 
   if (sendStop == true) {
     if (buffer == 0) {
-      bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kWarning, __FILE__,
+      bus_->LogMessage(cpp_bus_driver::Logger::LogLevel::kWarning, __FILE__,
           __LINE__, "Value out of range\n");
       return -1;
     }
 
     if (!bus_->Write(tx_buffer_.data(), buffer)) {
-      bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kError, __FILE__, __LINE__,
+      bus_->LogMessage(cpp_bus_driver::Logger::LogLevel::kError, __FILE__, __LINE__,
           "Write failed\n");
       return -1;
     }
@@ -416,7 +416,7 @@ size_t TwoWire::requestFrom(uint16_t address, size_t size, bool sendStop) {
   size_t buffer = tx_buffer_.size();
 
   if (buffer == 0) {
-    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kWarning, __FILE__, __LINE__,
+    bus_->LogMessage(cpp_bus_driver::Logger::LogLevel::kWarning, __FILE__, __LINE__,
         "Value out of range\n");
     return 0;
   }
@@ -424,7 +424,7 @@ size_t TwoWire::requestFrom(uint16_t address, size_t size, bool sendStop) {
   rx_index_ = 0;
   rx_buffer_ = std::make_unique<uint8_t[]>(size);
   if (!bus_->WriteRead(tx_buffer_.data(), buffer, rx_buffer_.get(), size)) {
-    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kError, __FILE__, __LINE__,
+    bus_->LogMessage(cpp_bus_driver::Logger::LogLevel::kError, __FILE__, __LINE__,
         "WriteRead failed\n");
     return 0;
   }
@@ -453,7 +453,7 @@ int TwoWire::available(void) {
 int TwoWire::read(void) {
   int value = -1;
   if (rx_buffer_.get() == nullptr) {
-    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kWarning, __FILE__, __LINE__,
+    bus_->LogMessage(cpp_bus_driver::Logger::LogLevel::kWarning, __FILE__, __LINE__,
         "Invalid argument\n");
     return value;
   }
@@ -465,19 +465,19 @@ int TwoWire::read(void) {
 
 size_t TwoWire::readBytes(uint8_t* buffer, size_t length) {
   if (buffer == nullptr) {
-    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kWarning, __FILE__, __LINE__,
+    bus_->LogMessage(cpp_bus_driver::Logger::LogLevel::kWarning, __FILE__, __LINE__,
         "Invalid argument\n");
     return 0;
   }
 
   if (length == 0) {
-    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kWarning, __FILE__, __LINE__,
+    bus_->LogMessage(cpp_bus_driver::Logger::LogLevel::kWarning, __FILE__, __LINE__,
         "Value out of range\n");
     return 0;
   }
 
   if (rx_index_ >= rx_length_) {
-    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kWarning, __FILE__, __LINE__,
+    bus_->LogMessage(cpp_bus_driver::Logger::LogLevel::kWarning, __FILE__, __LINE__,
         "Value out of range\n");
     return 0;
   }
@@ -489,7 +489,7 @@ size_t TwoWire::readBytes(uint8_t* buffer, size_t length) {
     buffer_2 = length;
   } else {
     buffer_2 = rx_length_ - rx_index_;
-    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kWarning, __FILE__, __LINE__,
+    bus_->LogMessage(cpp_bus_driver::Logger::LogLevel::kWarning, __FILE__, __LINE__,
         "Value out of range\n");
   }
 

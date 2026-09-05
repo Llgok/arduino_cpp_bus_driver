@@ -8,6 +8,14 @@
 #include "SPI.h"
 
 void SPIClass::begin(int8_t sck, int8_t miso, int8_t mosi, int8_t ss) {
+  std::lock_guard<std::mutex> lock(transaction_mutex_);
+  if (bus_ != nullptr && !bus_->Deinit(false)) {
+    return;
+  }
+  bus_.reset();
+  tx_buffer_.clear();
+  rx_buffer_ = nullptr;
+  rx_length_ = 0;
   sclk_ = static_cast<int32_t>(sck);
   miso_ = static_cast<int32_t>(miso);
   mosi_ = static_cast<int32_t>(mosi);
@@ -47,6 +55,20 @@ void SPIClass::begin(int8_t sck, int8_t miso, int8_t mosi, int8_t ss) {
 
 void SPIClass::setFrequency(uint32_t freq) { freq_hz_ = freq; }
 
+bool SPIClass::setBus(const std::shared_ptr<cpp_bus_driver::HardwareSpi>& bus) {
+  std::lock_guard<std::mutex> lock(transaction_mutex_);
+  if (bus == nullptr || (bus_ != nullptr && !bus_->Deinit(false))) {
+    return false;
+  }
+  bus_.reset();
+  shared_bus_ = bus;
+  init_flag_ = false;
+  tx_buffer_.clear();
+  rx_buffer_ = nullptr;
+  rx_length_ = 0;
+  return true;
+}
+
 // void SPIClass::setClockDivider(uint32_t clockDiv)
 // {
 //     // SPI_PARAM_LOCK();
@@ -72,6 +94,8 @@ void SPIClass::setFrequency(uint32_t freq) { freq_hz_ = freq; }
 // }
 
 void SPIClass::beginTransaction(SPISettings settings) {
+  // RFAL's IRQ task and application task must not interleave batched transfers.
+  transaction_mutex_.lock();
   // SPI_PARAM_LOCK();
   // // check if last freq changed
   // uint32_t cdiv = spiGetClockDiv(_spi);
@@ -87,48 +111,56 @@ void SPIClass::beginTransaction(SPISettings settings) {
     return;
   }
 
-  bus_ = std::make_shared<cpp_bus_driver::HardwareSpi>(mosi_, sclk_, miso_,
-      static_cast<spi_host_device_t>(spi_num_), settings.data_mode_,
-      [this](uint8_t bit_order) -> uint32_t {
-        switch (bit_order) {
-          case SPI_LSBFIRST:
-            return SPI_DEVICE_BIT_LSBFIRST;
-          default:
-            bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kWarning, __FILE__,
-                __LINE__, "Value out of range\n");
-            return -1;
-        }
-      }(settings.bit_order_));
-
-  bus_->set_bus_init_flag(bus_init_flag_);
+  if (settings.data_mode_ > SPI_MODE3 ||
+      (settings.bit_order_ != SPI_MSBFIRST && settings.bit_order_ != SPI_LSBFIRST)) {
+    return;
+  }
+  const uint32_t flags =
+      settings.bit_order_ == SPI_LSBFIRST ? SPI_DEVICE_BIT_LSBFIRST : 0;
+  if (shared_bus_ != nullptr) {
+    bus_ = std::make_shared<cpp_bus_driver::HardwareSpi>(
+        shared_bus_, settings.data_mode_, flags);
+  } else {
+    bus_ = std::make_shared<cpp_bus_driver::HardwareSpi>(mosi_, sclk_, miso_,
+        static_cast<spi_host_device_t>(spi_num_), settings.data_mode_, flags);
+    bus_->set_bus_init_flag(bus_init_flag_);
+  }
 
   if (!bus_->Init(settings.clock_, cs_)) {
-    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kError, __FILE__, __LINE__,
+    bus_->LogMessage(cpp_bus_driver::Logger::LogLevel::kError, __FILE__, __LINE__,
         "Init failed\n");
+    return;
   }
 
   init_flag_ = true;
 }
 
 void SPIClass::endTransaction() {
+  std::lock_guard<std::mutex> lock(transaction_mutex_, std::adopt_lock);
+  if (!init_flag_ || bus_ == nullptr || tx_buffer_.empty()) {
+    tx_buffer_.clear();
+    rx_buffer_ = nullptr;
+    rx_length_ = 0;
+    return;
+  }
   size_t buffertx_buffer__length = tx_buffer_.size();
   size_t bufferrx_buffer__length = buffertx_buffer__length - rx_length_;
 
   if (buffertx_buffer__length == 0) {
-    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kWarning, __FILE__, __LINE__,
+    bus_->LogMessage(cpp_bus_driver::Logger::LogLevel::kWarning, __FILE__, __LINE__,
         "Value out of range\n");
     return;
   }
 
-  if (bufferrx_buffer__length == 0) {
+  if (rx_buffer_ == nullptr || rx_length_ == 0) {
     if (!bus_->Write(tx_buffer_.data(), buffertx_buffer__length)) {
-      bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kError, __FILE__, __LINE__,
+      bus_->LogMessage(cpp_bus_driver::Logger::LogLevel::kError, __FILE__, __LINE__,
           "Write failed\n");
     }
 
     // for (size_t i = 0; i < buffertx_buffer__length; i++)
     // {
-    //     bus_->LogMessage(cpp_bus_driver::Tool::Log_Level::DEBUG, __FILE__,
+    //     bus_->LogMessage(cpp_bus_driver::PlatformHal::Log_Level::DEBUG, __FILE__,
     //     __LINE__, "tx1[%d]: %#X\n", i, tx_buffer_[i]);
     // }
   } else {
@@ -136,19 +168,19 @@ void SPIClass::endTransaction() {
 
     if (!bus_->WriteRead(
             tx_buffer_.data(), buffer_rx_data.get(), buffertx_buffer__length)) {
-      bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kError, __FILE__, __LINE__,
+      bus_->LogMessage(cpp_bus_driver::Logger::LogLevel::kError, __FILE__, __LINE__,
           "WriteRead failed\n");
     }
 
     // for (size_t i = 0; i < buffertx_buffer__length; i++)
     // {
-    //     bus_->LogMessage(cpp_bus_driver::Tool::Log_Level::DEBUG, __FILE__,
+    //     bus_->LogMessage(cpp_bus_driver::PlatformHal::Log_Level::DEBUG, __FILE__,
     //     __LINE__, "tx2[%d]: %#X\n", i, tx_buffer_[i]);
     // }
 
     // for (size_t i = 0; i < buffertx_buffer__length; i++)
     // {
-    //     bus_->LogMessage(cpp_bus_driver::Tool::Log_Level::DEBUG, __FILE__,
+    //     bus_->LogMessage(cpp_bus_driver::PlatformHal::Log_Level::DEBUG, __FILE__,
     //     __LINE__, "rx[%d]: %#X\n", i, buffer_rx_data[i]);
     // }
 
@@ -157,7 +189,7 @@ void SPIClass::endTransaction() {
 
     // for (size_t i = 0; i < rx_length_; i++)
     // {
-    //     bus_->LogMessage(cpp_bus_driver::Tool::Log_Level::DEBUG, __FILE__,
+    //     bus_->LogMessage(cpp_bus_driver::PlatformHal::Log_Level::DEBUG, __FILE__,
     //     __LINE__, "rx_buffer_[%d]: %#X\n", i, rx_buffer_[i]);
     // }
   }
@@ -177,7 +209,8 @@ void SPIClass::endTransaction() {
 // }
 
 uint8_t SPIClass::transfer(uint8_t data) {
-  transfer(&data, 1);
+  // Command bytes are batched with the following payload under one hardware CS.
+  transferBytes(&data, nullptr, 1);
   return 1;
 }
 
@@ -229,8 +262,8 @@ uint8_t SPIClass::transfer(uint8_t data) {
 // }
 
 void SPIClass::writeBytes(const uint8_t* data, uint32_t size) {
-  if (!bus_->Write(data, size)) {
-    bus_->LogMessage(cpp_bus_driver::Tool::LogLevel::kError, __FILE__, __LINE__,
+  if (init_flag_ && bus_ != nullptr && !bus_->Write(data, size)) {
+    bus_->LogMessage(cpp_bus_driver::Logger::LogLevel::kError, __FILE__, __LINE__,
         "Write failed\n");
   }
 }
@@ -260,10 +293,17 @@ void SPIClass::transfer(void* data, uint32_t size) {
  * @param size uint32_t
  */
 void SPIClass::transferBytes(const uint8_t* data, uint8_t* out, uint32_t size) {
-  tx_buffer_.insert(tx_buffer_.end(), data, data + size);
+  if (!init_flag_ || size == 0) {
+    return;
+  }
+  if (data == nullptr) {
+    tx_buffer_.insert(tx_buffer_.end(), size, 0);
+  } else {
+    tx_buffer_.insert(tx_buffer_.end(), data, data + size);
+  }
 
   rx_buffer_ = out;
-  rx_length_ = size;
+  rx_length_ = out == nullptr ? 0 : size;
 }
 
 // /**

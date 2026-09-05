@@ -7,6 +7,8 @@
  */
 #pragma once
 
+#include <mutex>
+
 #include "arduino_cpp_bus_driver.h"
 
 class SPISettings {
@@ -35,6 +37,7 @@ class SPIClass {
   // void setBitOrder(uint8_t bitOrder);
   // void setDataMode(uint8_t data_mode);
   void setFrequency(uint32_t freq);
+  bool setBus(const std::shared_ptr<cpp_bus_driver::HardwareSpi>& bus);
   void set_bus_init_flag(bool enable) { bus_init_flag_ = enable; }
   // void setClockDivider(uint32_t clockDiv);
 
@@ -60,7 +63,11 @@ class SPIClass {
   int8_t pinSS() { return cs_; }
 
  private:
-  int32_t mosi_, sclk_, miso_, cs_, freq_hz_;
+  int32_t mosi_ = -1;
+  int32_t sclk_ = -1;
+  int32_t miso_ = -1;
+  int32_t cs_ = -1;
+  int32_t freq_hz_ = 1000000;
   bool init_flag_ = false;
   bool bus_init_flag_ = false;
   int8_t spi_num_;
@@ -72,9 +79,11 @@ class SPIClass {
   // #endif
   // void writePattern_(const uint8_t *data, uint8_t size, uint8_t repeat);
   std::vector<uint8_t> tx_buffer_;
-  uint8_t* rx_buffer_;
-  size_t rx_length_;
+  uint8_t* rx_buffer_ = nullptr;
+  size_t rx_length_ = 0;
   std::shared_ptr<cpp_bus_driver::HardwareSpi> bus_;
+  std::shared_ptr<cpp_bus_driver::HardwareSpi> shared_bus_;
+  std::mutex transaction_mutex_;
 };
 
 extern SPIClass SPI;
