@@ -7,7 +7,7 @@
  */
 #pragma once
 
-#include "arduino_cpp_bus_driver_library.h"
+#include "arduino_cpp_bus_driver.h"
 
 // WIRE_HAS_BUFFER_SIZE means Wire has setBufferSize()
 // #define WIRE_HAS_BUFFER_SIZE 1

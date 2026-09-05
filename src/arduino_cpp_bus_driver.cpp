@@ -5,7 +5,7 @@
  * @LastEditTime: 2026-07-01 14:35:00
  * @License: GPL 3.0
  */
-#include "arduino_cpp_bus_driver_library.h"
+#include "arduino_cpp_bus_driver.h"
 
 struct InterruptArg {
   std::function<void(void)> interrupt_function;

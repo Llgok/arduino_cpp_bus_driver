@@ -10,7 +10,7 @@
 #include <math.h>
 
 #include "Print.h"
-#include "arduino_cpp_bus_driver_library.h"
+#include "arduino_cpp_bus_driver.h"
 
 #define PI 3.1415926535897932384626433832795
 

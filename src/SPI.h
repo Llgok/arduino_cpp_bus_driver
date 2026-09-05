@@ -7,7 +7,7 @@
  */
 #pragma once
 
-#include "arduino_cpp_bus_driver_library.h"
+#include "arduino_cpp_bus_driver.h"
 
 class SPISettings {
  public:
